@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { clsx } from 'clsx';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
 export interface DropdownItem {
   id: string;

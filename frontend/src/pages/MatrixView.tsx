@@ -189,6 +189,7 @@ const MatrixView: React.FC = () => {
   const [drawerTab, setDrawerTab] = useState<'info' | 'criteria' | 'deps'>('info');
 
   const canManage = user?.role === 'admin' || user?.role === 'supervisor';
+  const activeProject = projects.find((p) => p.id === selectedProjectId);
 
   /* ═══ Data loading ═══ */
   const loadProjects = useCallback(async () => { try { setProjects((await projectsAPI.getAll()).data || []); } catch { /**/ } }, []);
@@ -241,19 +242,22 @@ const MatrixView: React.FC = () => {
   const collapseAll = () => setExpandedIds(new Set());
   const allExpanded = expandedIds.size > 0 && expandedIds.size >= flatItems().length;
 
+  // Normalizar id (API puede devolver number o string por bigint)
+  const idNum = (x: unknown): number | null => (x == null || x === '') ? null : Number(x);
+
   // Calcular código WBS automático según padre
   const calculateAutoCode = useCallback((parentId: number | null): string => {
-    if (parentId === null) {
+    if (parentId === null || parentId === undefined) {
       // Raíz: buscar el siguiente número (1, 2, 3...)
-      const rootItems = tree.filter((i) => !i.parentId);
+      const rootItems = tree.filter((i) => i.parentId == null || i.parentId === '');
       const existingCodes = rootItems.map((i) => i.code).filter((c) => /^\d+$/.test(c)).map((c) => parseInt(c));
       const maxNum = existingCodes.length > 0 ? Math.max(...existingCodes) : 0;
       return String(maxNum + 1);
     } else {
-      // Hijo: padre.code + "." + siguiente número
-      const parentItem = flatItems().find((i) => i.id === parentId);
+      // Hijo: padre.code + "." + siguiente número (comparar ids normalizados)
+      const parentItem = flatItems().find((i) => idNum(i.id) === idNum(parentId));
       if (!parentItem) return '';
-      const siblings = flatItems().filter((i) => i.parentId === parentId && i.id !== editingItem?.id);
+      const siblings = flatItems().filter((i) => idNum(i.parentId) === idNum(parentId) && idNum(i.id) !== idNum(editingItem?.id));
       const parentCode = parentItem.code;
       const existingSuffixes = siblings
         .map((s) => s.code)
@@ -339,7 +343,7 @@ const MatrixView: React.FC = () => {
         await matrixAPI.createItem({
           ...payload,
           projectId: selectedProjectId,
-          parentId: formData.parentId ? Number(formData.parentId) : undefined,
+          parentId: formData.parentId != null && formData.parentId !== '' ? Number(formData.parentId) : undefined,
         });
       }
       setShowCreateModal(false);
@@ -434,8 +438,17 @@ const MatrixView: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl" style={{ backgroundColor: '#6366f114' }}><FolderTree className="w-5 h-5 text-primary" /></div>
           <div>
-            <h1 className="text-xl font-bold text-zinc-900 dark:text-white">Centro de Proyecto</h1>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">SIPE — Sistema Integrado de Planificación y Ejecución</p>
+            {activeProject ? (
+              <>
+                <p className="text-[11px] uppercase tracking-wider font-semibold text-primary/70 mb-0.5">Centro de Proyecto</p>
+                <h1 className="text-xl font-bold text-zinc-900 dark:text-white">{activeProject.name}</h1>
+              </>
+            ) : (
+              <>
+                <h1 className="text-xl font-bold text-zinc-900 dark:text-white">Centro de Proyecto</h1>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">SIPE — Sistema Integrado de Planificación y Ejecución</p>
+              </>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -817,9 +830,9 @@ const MatrixView: React.FC = () => {
                 </div>
               </div>
               <div><label className={LABEL_CLS}>Partida Padre</label>
-                <select value={formData.parentId ?? ''} onChange={(e) => setFormData({ ...formData, parentId: e.target.value ? +e.target.value : null })} className={INPUT_CLS}>
+                <select value={formData.parentId != null ? String(formData.parentId) : ''} onChange={(e) => setFormData({ ...formData, parentId: e.target.value ? Number(e.target.value) : null })} className={INPUT_CLS}>
                   <option value="">Raíz (sin padre)</option>
-                  {flatItems().filter((i) => i.id !== editingItem?.id).map((i) => <option key={i.id} value={i.id}>{i.code} — {i.title}</option>)}
+                  {flatItems().filter((i) => idNum(i.id) !== idNum(editingItem?.id)).map((i) => <option key={String(i.id)} value={Number(i.id)}>{i.code} — {i.title}</option>)}
                 </select>
               </div>
             </div>

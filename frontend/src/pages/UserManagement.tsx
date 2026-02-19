@@ -67,9 +67,9 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const loadDepartments = async (projectId: number) => {
+  const loadDepartments = async (_projectId?: number) => {
     try {
-      const response = await departmentsAPI.getAll(projectId);
+      const response = await departmentsAPI.getAll();
       setDepartments(response.data);
     } catch (error) {
       console.error('Error al cargar departamentos:', error);
@@ -78,7 +78,7 @@ const UserManagement: React.FC = () => {
 
   const handleAssignDepartment = async (userId: number, deptId: number) => {
     try {
-      await usersAPI.update(userId, { departmentId: deptId });
+      await usersAPI.assignDepartments(userId, [deptId]);
       setEditingUserId(null);
       loadData();
     } catch (error: any) {
@@ -89,7 +89,7 @@ const UserManagement: React.FC = () => {
   const handleRemoveDepartment = async (userId: number) => {
     if (!window.confirm('¿Remover usuario de su departamento actual?')) return;
     try {
-      await usersAPI.update(userId, { departmentId: undefined });
+      await usersAPI.assignDepartments(userId, []);
       loadData();
     } catch (error: any) {
       alert(error.response?.data?.message || 'Error al remover departamento');

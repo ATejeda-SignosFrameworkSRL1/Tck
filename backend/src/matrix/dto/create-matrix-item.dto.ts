@@ -6,14 +6,17 @@ import {
   IsBoolean,
   IsDateString,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateMatrixItemDto {
   @IsNumber()
   @IsNotEmpty()
+  @Type(() => Number)
   projectId: number;
 
   @IsNumber()
   @IsOptional()
+  @Type(() => Number)
   parentId?: number;
 
   @IsString()

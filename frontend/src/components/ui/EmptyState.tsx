@@ -30,7 +30,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   action,
   className,
 }) => {
-  const IconComponent = typeof icon === 'string' ? iconMap[icon] : null;
+  const IconComponent = typeof icon === 'string' ? iconMap[icon as keyof typeof iconMap] : null;
 
   return (
     <div

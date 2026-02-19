@@ -288,7 +288,7 @@ const DeliverableMatrix: React.FC = () => {
             <Package className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight">Proyectos Entregables</h1>
+            <h1 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight">Matriz de Entregables</h1>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">Gestión y control de entregables del proyecto</p>
           </div>
         </div>

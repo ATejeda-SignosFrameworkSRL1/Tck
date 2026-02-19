@@ -62,7 +62,7 @@ const MultiUserSelector: React.FC<MultiUserSelectorProps> = ({
 
   const loadDepartments = async () => {
     try {
-      const response = await departmentsAPI.getAll(projectId);
+      const response = await departmentsAPI.getAll();
       setDepartments(response.data);
     } catch (error) {
       console.error('Error al cargar departamentos:', error);

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, MoreVertical, Building2, Users } from 'lucide-react';
 import { departmentsAPI, projectsAPI } from '../../services/api';
 import { notify } from '../../store/notificationStore';
-import { PageHeader, Button, Table, Badge, Modal, Input, Select, ConfirmDialog, Dropdown, EmptyState } from '../../components/ui';
+import { PageHeader, Button, Table, Modal, Input, Select, ConfirmDialog, Dropdown, EmptyState } from '../../components/ui';
 
 interface Department {
   id: number;
@@ -62,7 +62,7 @@ const DepartmentsPage: React.FC = () => {
     if (!selectedProjectId) return;
     try {
       setIsLoading(true);
-      const response = await departmentsAPI.getAll(selectedProjectId);
+      const response = await departmentsAPI.getAll();
       setDepartments(response.data);
     } catch (error) {
       console.error('Error loading departments:', error);

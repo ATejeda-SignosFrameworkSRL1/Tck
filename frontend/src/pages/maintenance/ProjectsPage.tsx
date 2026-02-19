@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Power, MoreVertical, FolderKanban, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { projectsAPI, departmentsAPI } from '../../services/api';
+import { projectsAPI } from '../../services/api';
+import { useProject } from '../../context/ProjectContext';
 import { notify } from '../../store/notificationStore';
 import { PageHeader, Button, Table, Badge, Modal, Input, ConfirmDialog, Dropdown, EmptyState } from '../../components/ui';
 import { format } from 'date-fns';
@@ -19,6 +20,7 @@ interface Project {
 }
 
 const ProjectsPage: React.FC = () => {
+  const { selectedProjectId, setSelectedProjectId } = useProject();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -117,6 +119,9 @@ const ProjectsPage: React.FC = () => {
     if (!deleteConfirm) return;
     try {
       await projectsAPI.delete(deleteConfirm.id);
+      if (selectedProjectId === deleteConfirm.id) {
+        setSelectedProjectId(null);
+      }
       setDeleteConfirm(null);
       loadProjects();
     } catch (error: any) {

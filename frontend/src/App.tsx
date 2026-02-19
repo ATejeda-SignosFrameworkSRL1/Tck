@@ -23,6 +23,7 @@ const MatrixView = React.lazy(() => import('./pages/MatrixView'));
 const GanttView = React.lazy(() => import('./pages/GanttView'));
 const DeliverableMatrix = React.lazy(() => import('./pages/DeliverableMatrix'));
 const DeliverableFormPage = React.lazy(() => import('./pages/DeliverableFormPage'));
+const ActaAceptacion = React.lazy(() => import('./pages/ActaAceptacion'));
 
 // Kanban
 const KanbanBoard = React.lazy(() => import('./pages/KanbanBoard'));
@@ -79,6 +80,7 @@ function App() {
                   <Route path="/deliverables" element={<DeliverableMatrix />} />
                   <Route path="/deliverables/new" element={<DeliverableFormPage />} />
                   <Route path="/deliverables/edit/:id" element={<DeliverableFormPage />} />
+                  <Route path="/acta-aceptacion" element={<ActaAceptacion />} />
                   <Route path="/metrics" element={<SipeDashboard />} />
                   <Route path="/metrics/:projectId" element={<SipeDashboard />} />
 

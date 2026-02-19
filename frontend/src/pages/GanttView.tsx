@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import {
-  ChevronRight, ChevronDown, Diamond, AlertTriangle, Calendar, GanttChart,
+  ChevronRight, ChevronDown, Diamond, Calendar, GanttChart,
   ChevronsUpDown,
 } from 'lucide-react';
 import { ganttAPI, projectsAPI } from '../services/api';
@@ -126,7 +126,7 @@ const GanttView: React.FC<GanttViewProps> = ({ embeddedProjectId }) => {
   };
   const isCrit = (id: number) => ganttData?.criticalPath?.includes(id) ?? false;
   const fDate = (d: string | null) => d ? new Date(d).toLocaleDateString('es', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-  const fShort = (d: string | null) => d ? new Date(d).toLocaleDateString('es', { day: '2-digit', month: 'short' }) : '—';
+  void ((d: string | null) => d ? new Date(d).toLocaleDateString('es', { day: '2-digit', month: 'short' }) : '—');
 
   const onMove = (e: React.MouseEvent) => { if (!tlRef.current) return; const x = e.clientX - tlRef.current.getBoundingClientRect().left + tlRef.current.scrollLeft; const i = Math.floor(x / DAY_W); setHoverIdx(i >= 0 && i < days ? i : null); };
   const onLeave = () => { setHoverIdx(null); setTip(null); };

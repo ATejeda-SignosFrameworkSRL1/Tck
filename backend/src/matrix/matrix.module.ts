@@ -8,6 +8,7 @@ import { MatrixDependency } from './entities/matrix-dependency.entity';
 import { ProjectBaseline } from './entities/project-baseline.entity';
 import { BaselineSnapshot } from './entities/baseline-snapshot.entity';
 import { Ticket } from '../tickets/ticket.entity';
+import { Project } from '../projects/project.entity';
 import { DeliverablesModule } from '../deliverables/deliverables.module';
 
 @Module({
@@ -20,6 +21,7 @@ import { DeliverablesModule } from '../deliverables/deliverables.module';
       ProjectBaseline,
       BaselineSnapshot,
       Ticket,
+      Project,
     ]),
   ],
   controllers: [MatrixController],

@@ -68,13 +68,13 @@ export class ProjectsService {
   async remove(id: number): Promise<void> {
     const project = await this.findOne(id);
 
-    // Verificar si tiene tickets activos
+    // Verificar si tiene tickets activos (no terminados)
     const activeTicketsCount = await this.projectsRepository
       .createQueryBuilder('project')
       .leftJoin('project.tickets', 'ticket')
       .where('project.id = :id', { id })
       .andWhere('ticket.status IN (:...statuses)', {
-        statuses: ['new', 'in_progress'],
+        statuses: ['open', 'in_progress', 'blocked', 'in_review'],
       })
       .getCount();
 

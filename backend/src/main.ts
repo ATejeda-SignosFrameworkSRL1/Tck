@@ -1,17 +1,32 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { networkInterfaces } from 'os';
+
+function getLocalIP(): string {
+  const nets = networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name] ?? []) {
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return '127.0.0.1';
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // CORS: permitir frontend en cualquier puerto localhost (evita bloqueo de login)
   app.enableCors({
     origin: (origin, callback) => {
       const allowed =
         !origin ||
         /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
-        /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin);
+        /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin) ||
+        /^https?:\/\/192\.168\.\d+\.\d+(:\d+)?$/.test(origin) ||
+        /^https?:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/.test(origin) ||
+        /^https?:\/\/172\.(1[6-9]|2\d|3[01])\.\d+\.\d+(:\d+)?$/.test(origin);
       callback(allowed ? null : new Error('CORS not allowed'), allowed ? true : false);
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -21,7 +36,6 @@ async function bootstrap() {
     optionsSuccessStatus: 204,
   });
 
-  // Validación global
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -31,7 +45,17 @@ async function bootstrap() {
   );
 
   const port = process.env.PORT || 3000;
-  await app.listen(port);
-  console.log(`🚀 Servidor corriendo en http://localhost:${port}`);
+  await app.listen(port, '0.0.0.0');
+
+  const localIP = getLocalIP();
+  console.log('');
+  console.log('='.repeat(55));
+  console.log(`  🚀 Backend corriendo en:`);
+  console.log(`     Local:   http://localhost:${port}`);
+  console.log(`     Red:     http://${localIP}:${port}`);
+  console.log('='.repeat(55));
+  console.log(`  📋 URL para QA: http://${localIP}:${port}`);
+  console.log('='.repeat(55));
+  console.log('');
 }
 bootstrap();

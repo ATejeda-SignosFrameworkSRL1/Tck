@@ -2,45 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ticketsAPI } from '../services/api';
+import type { Ticket } from '../types';
 import TicketCard from '../components/tickets/TicketCard';
 import ProjectSelector from '../components/projects/ProjectSelector';
-
-interface User {
-  id: number;
-  email: string;
-  name: string;
-  role: string;
-}
-
-interface Project {
-  id: number;
-  name: string;
-  clientDeadline?: string;
-}
-
-interface TicketAssignment {
-  id: number;
-  userId: number;
-  user: User;
-}
-
-interface Ticket {
-  id: number;
-  title: string;
-  description: string;
-  status: 'open' | 'in_progress' | 'blocked' | 'done';
-  priority: 'low' | 'medium' | 'high';
-  projectId: number;
-  project?: Project;
-  dueDate?: string;
-  assignments?: TicketAssignment[];
-  assignedTo?: User;
-  assignedToId?: number;
-  createdBy: User;
-  createdById: number;
-  createdAt: string;
-  updatedAt: string;
-}
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();

@@ -253,7 +253,7 @@ const SipeDashboard: React.FC<SipeDashboardProps> = ({ embeddedProjectId }) => {
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border, #e2e8f0)" strokeOpacity={0.5} />
                   <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} fontSize={10} tick={{ fill: '#94a3b8' }} />
                   <YAxis type="category" dataKey="code" width={45} fontSize={10} tick={{ fill: '#94a3b8', fontFamily: 'monospace' }} />
-                  <Tooltip formatter={(v: number, n: string) => [`${v.toFixed(1)}%`, n === 'actual' ? 'Real' : 'Planificado']} contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                  <Tooltip formatter={(v, n) => v != null ? [`${Number(v).toFixed(1)}%`, n === 'actual' ? 'Real' : 'Planificado'] : []} contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e2e8f0' }} />
                   <Bar dataKey="planned" fill="#c7d2fe" name="Planificado" radius={[0, 2, 2, 0]} />
                   <Bar dataKey="actual" fill="#6366f1" name="Real" radius={[0, 2, 2, 0]} />
                 </BarChart>
@@ -288,7 +288,7 @@ const SipeDashboard: React.FC<SipeDashboardProps> = ({ embeddedProjectId }) => {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border, #e2e8f0)" strokeOpacity={0.5} />
                 <XAxis dataKey="date" fontSize={9} tick={{ fill: '#94a3b8' }} tickFormatter={(d) => d.slice(5)} />
                 <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} fontSize={10} tick={{ fill: '#94a3b8' }} />
-                <Tooltip formatter={(v: number, n: string) => [`${v.toFixed(1)}%`, n === 'planned' ? 'Planificado' : 'Real']} contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                <Tooltip formatter={(v, n) => v != null ? [`${Number(v).toFixed(1)}%`, n === 'planned' ? 'Planificado' : 'Real'] : []} contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e2e8f0' }} />
                 <RLegend formatter={(v) => v === 'planned' ? 'Planificado' : 'Real'} wrapperStyle={{ fontSize: 11 }} />
                 <Line type="monotone" dataKey="planned" stroke="#c7d2fe" strokeWidth={2} dot={false} strokeDasharray="5 5" />
                 <Line type="monotone" dataKey="actual" stroke="#6366f1" strokeWidth={2.5} dot={false} />
@@ -320,7 +320,7 @@ const SipeDashboard: React.FC<SipeDashboardProps> = ({ embeddedProjectId }) => {
                     <Pie data={pieData} cx="50%" cy="50%" innerRadius={38} outerRadius={68} paddingAngle={2} dataKey="value" strokeWidth={0}>
                       {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                     </Pie>
-                    <Tooltip formatter={(v: number, n: string) => [v, n]} contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                    <Tooltip formatter={(v, n) => [v ?? 0, n ?? '']} contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e2e8f0' }} />
                   </PieChart>
               </div>
               <div className="flex-1 space-y-2">

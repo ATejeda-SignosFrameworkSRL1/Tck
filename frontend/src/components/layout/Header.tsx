@@ -42,7 +42,7 @@ const routeLabels: Record<string, string> = {
 
 export const Header: React.FC = () => {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme, isDark } = useTheme();
+  const { toggleTheme, isDark } = useTheme();
   const { projects, setSelectedProjectId } = useProject();
   const navigate = useNavigate();
   const location = useLocation();

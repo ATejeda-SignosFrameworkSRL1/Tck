@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Filter, Search, Ticket } from 'lucide-react';
-import { ticketsAPI, projectsAPI } from '../services/api';
+import { Plus, Search } from 'lucide-react';
+import { ticketsAPI } from '../services/api';
 import { useProject } from '../context/ProjectContext';
-import { PageHeader, Button, Table, StatusBadge, PriorityBadge, Avatar, AvatarGroup, Select, Input, EmptyState, Tabs, Card } from '../components/ui';
+import { PageHeader, Button, Table, StatusBadge, PriorityBadge, AvatarGroup, Select, Input, EmptyState, Tabs, Card } from '../components/ui';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 

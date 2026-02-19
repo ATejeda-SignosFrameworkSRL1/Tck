@@ -13,6 +13,7 @@ import {
   Wrench,
   Activity,
   Package,
+  FileCheck,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -52,6 +53,13 @@ const navItems: NavItem[] = [
     icon: <Package className="w-5 h-5" />,
     path: '/deliverables',
     accentColor: '#10b981',
+  },
+  {
+    id: 'acta-aceptacion',
+    label: 'Documento de Aceptación',
+    icon: <FileCheck className="w-5 h-5" />,
+    path: '/acta-aceptacion',
+    accentColor: '#0ea5e9',
   },
   {
     id: 'divider-2',
@@ -199,7 +207,7 @@ export const Sidebar: React.FC = () => {
     const active = isActive(item.path);
 
     const isSipeItem = item.id === 'sipe';
-    const isAccentedItem = item.id === 'sipe' || item.id === 'deliverables';
+    const isAccentedItem = item.id === 'sipe' || item.id === 'deliverables' || item.id === 'acta-aceptacion';
 
     return (
       <NavLink

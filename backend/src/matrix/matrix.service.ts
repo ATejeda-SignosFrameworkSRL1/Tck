@@ -12,6 +12,7 @@ import { MatrixDependency } from './entities/matrix-dependency.entity';
 import { ProjectBaseline } from './entities/project-baseline.entity';
 import { BaselineSnapshot } from './entities/baseline-snapshot.entity';
 import { Ticket, TicketStatus } from '../tickets/ticket.entity';
+import { Project } from '../projects/project.entity';
 import { CreateMatrixItemDto } from './dto/create-matrix-item.dto';
 import { UpdateMatrixItemDto } from './dto/update-matrix-item.dto';
 import { CreateAcceptanceCriteriaDto } from './dto/create-acceptance-criteria.dto';
@@ -37,12 +38,18 @@ export class MatrixService {
     private snapshotsRepository: Repository<BaselineSnapshot>,
     @InjectRepository(Ticket)
     private ticketsRepository: Repository<Ticket>,
+    @InjectRepository(Project)
+    private projectsRepository: Repository<Project>,
   ) {}
 
   // ==================== MATRIX ITEMS ====================
 
   async createItem(dto: CreateMatrixItemDto): Promise<MatrixItem> {
-    // Validate unique code per project
+    const project = await this.projectsRepository.findOne({ where: { id: dto.projectId } });
+    if (!project) {
+      throw new NotFoundException(`Proyecto con ID ${dto.projectId} no existe`);
+    }
+
     await this.validateUniqueCode(dto.projectId, dto.code);
 
     // Validate parent belongs to same project
@@ -592,12 +599,12 @@ export class MatrixService {
     parentId: number,
   ): Promise<void> {
     const parent = await this.matrixItemsRepository.findOne({
-      where: { id: parentId },
+      where: { id: Number(parentId) },
     });
     if (!parent) {
       throw new NotFoundException('Ítem padre no encontrado');
     }
-    if (parent.projectId !== projectId) {
+    if (Number(parent.projectId) !== Number(projectId)) {
       throw new BadRequestException(
         'El ítem padre debe pertenecer al mismo proyecto',
       );

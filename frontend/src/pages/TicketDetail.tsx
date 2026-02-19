@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Edit2, Save, X, Clock, User, Calendar, FolderKanban, Building2, ArrowRightLeft, History, ListTodo, Paperclip, Download, Trash2, Plus, Upload, Tag, Users, Eye, CheckCircle2, Shield, Maximize2, Minimize2 } from 'lucide-react';
+import { ArrowLeft, Edit2, Save, X, Clock, User, Calendar, FolderKanban, Building2, ArrowRightLeft, History, ListTodo, Paperclip, Trash2, Plus, Upload, Tag, Eye, CheckCircle2, Shield, Maximize2, Minimize2 } from 'lucide-react';
 import { ticketsAPI, commentsAPI, trackingAPI, departmentsAPI, tagsAPI, usersAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { notify } from '../store/notificationStore';
@@ -995,7 +995,7 @@ const TicketDetail: React.FC = () => {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="secondary">{transition.fromDepartment.name}</Badge>
+                          <Badge variant="neutral">{transition.fromDepartment.name}</Badge>
                           <ArrowRightLeft className="w-4 h-4 text-zinc-400" />
                           <Badge variant="primary">{transition.toDepartment.name}</Badge>
                         </div>

@@ -11,7 +11,7 @@ import {
 import { ticketsAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { Button, Table, StatusBadge, PriorityBadge, EmptyState, Spinner } from '../../components/ui';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface UserTicket {

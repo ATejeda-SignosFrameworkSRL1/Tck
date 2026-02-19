@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Key, User, Shield, Check, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
-import { authAPI, departmentsAPI } from '../services/api';
+import { authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 type Step = 'email' | 'otp' | 'invitation' | 'details' | 'complete';
@@ -199,7 +199,7 @@ const SecureRegister: React.FC = () => {
                     : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-500'
                 }`}
               >
-                {isComplete ? <Check className="w-4 h-4" /> : React.cloneElement(stepInfo.icon as React.ReactElement, { className: 'w-4 h-4' })}
+                {isComplete ? <Check className="w-4 h-4" /> : React.cloneElement(stepInfo.icon as React.ReactElement<{ className?: string }>, { className: 'w-4 h-4' })}
               </div>
               <span className={`mt-1.5 text-[10px] font-medium whitespace-nowrap ${isActive ? 'text-primary' : 'text-zinc-500'}`}>
                 {stepInfo.title}

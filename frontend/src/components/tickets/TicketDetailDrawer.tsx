@@ -10,16 +10,11 @@ import {
   FolderKanban,
   Calendar,
   User,
-  History,
   Clock,
-  ListTodo,
-  Paperclip,
-  Download,
   Trash2,
   Plus,
   Upload,
   Tag,
-  Eye,
   Maximize2,
   Minimize2,
 } from 'lucide-react';
@@ -28,9 +23,6 @@ import { ticketsAPI, commentsAPI, trackingAPI, departmentsAPI, tagsAPI } from '.
 import { notify } from '../../store/notificationStore';
 import { useAuth } from '../../context/AuthContext.jsx';
 import {
-  Card,
-  CardHeader,
-  CardTitle,
   Button,
   Badge,
   StatusBadge,
@@ -874,7 +866,7 @@ const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                       Flujo de Departamentos
                     </h4>
                     <div className="flex items-center gap-3 flex-wrap">
-                      <Badge variant="secondary">{ticket.originDepartment?.name || 'N/A'}</Badge>
+                      <Badge variant="neutral">{ticket.originDepartment?.name || 'N/A'}</Badge>
                       <ArrowRightLeft className="w-4 h-4 text-zinc-400" />
                       <Badge variant="primary">{ticket.currentDepartment?.name || 'N/A'}</Badge>
                       {ticket.targetDepartment && (
@@ -1033,7 +1025,7 @@ const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="secondary">{transition.fromDepartment.name}</Badge>
+                            <Badge variant="neutral">{transition.fromDepartment.name}</Badge>
                             <ArrowRightLeft className="w-3 h-3 text-zinc-400" />
                             <Badge variant="primary">{transition.toDepartment.name}</Badge>
                           </div>
