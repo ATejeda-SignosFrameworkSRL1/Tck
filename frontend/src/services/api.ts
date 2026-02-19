@@ -305,6 +305,7 @@ export const matrixAPI = {
     isMilestone?: boolean;
     isCriticalPath?: boolean;
     isDeliverable?: boolean;
+    deliverableEntryId?: number | null;
     sortOrder?: number;
   }) => api.post('/matrix/items', data),
   updateItem: (id: number, data: {
@@ -318,6 +319,7 @@ export const matrixAPI = {
     isMilestone?: boolean;
     isCriticalPath?: boolean;
     isDeliverable?: boolean;
+    deliverableEntryId?: number | null;
     sortOrder?: number;
     status?: string;
   }) => api.patch(`/matrix/items/${id}`, data),

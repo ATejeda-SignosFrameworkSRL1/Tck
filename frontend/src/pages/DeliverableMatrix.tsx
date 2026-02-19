@@ -2,14 +2,14 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Package, Plus, Trash2, Edit3, FileSpreadsheet, FileText,
-  RefreshCw, Layers, Calendar, Upload, Eye, ChevronDown, Image as ImageIcon, X,
+  RefreshCw, Layers, Calendar, Upload, Eye, ChevronDown, Image as ImageIcon, X, ExternalLink,
 } from 'lucide-react';
-import { deliverablesAPI, projectsAPI } from '../services/api';
+import { deliverablesAPI, projectsAPI, matrixAPI } from '../services/api';
 import { useProject } from '../context/ProjectContext';
 import { useAuth } from '../context/AuthContext';
 import { notify } from '../store/notificationStore';
 import { Button, Spinner } from '../components/ui';
-import type { Project, DeliverableEntry, DeliverablesSummary } from '../types';
+import type { Project, DeliverableEntry, DeliverablesSummary, MatrixItem } from '../types';
 
 /* ═══════════════════ STATUS CONFIG ═══════════════════ */
 const STATUS_OPTIONS: { value: string; label: string; color: string; bg: string }[] = [
@@ -149,6 +149,7 @@ const DeliverableMatrix: React.FC = () => {
   const [summary, setSummary] = useState<DeliverablesSummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [deliverableMatrixItems, setDeliverableMatrixItems] = useState<MatrixItem[]>([]);
 
   const [clientLogo, setClientLogo] = useState<string | null>(null);
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
@@ -163,17 +164,24 @@ const DeliverableMatrix: React.FC = () => {
     if (!selectedProjectId) return;
     setIsLoading(true);
     try {
-      const [entriesRes, summaryRes] = await Promise.all([
+      const [entriesRes, summaryRes, flatRes] = await Promise.all([
         deliverablesAPI.getByProject(selectedProjectId),
         deliverablesAPI.getSummary(selectedProjectId),
+        matrixAPI.getProjectTreeFlat(selectedProjectId),
       ]);
       setEntries(entriesRes.data || []);
       const s = summaryRes.data;
       setSummary(s);
       setClientLogo(s?.clientLogoUrl || null);
       setCompanyLogo(s?.companyLogoUrl || null);
+      const allItems: MatrixItem[] = flatRes.data || [];
+      setDeliverableMatrixItems(allItems.filter((i) => i.isDeliverable));
     } catch { /* */ } finally { setIsLoading(false); }
   }, [selectedProjectId]);
+
+  const getRowMatrixItems = (entry: DeliverableEntry): MatrixItem[] => {
+    return deliverableMatrixItems.filter((mi) => mi.deliverableEntryId != null && Number(mi.deliverableEntryId) === Number(entry.id));
+  };
 
   useEffect(() => { loadProjects(); }, [loadProjects]);
   useEffect(() => {
@@ -417,6 +425,7 @@ const DeliverableMatrix: React.FC = () => {
                       <th className="py-3 px-3 text-left font-semibold uppercase tracking-wider text-[10px] whitespace-nowrap min-w-[200px]">Criterios Aceptación</th>
                       <th className="py-3 px-3 text-center font-semibold uppercase tracking-wider text-[10px] whitespace-nowrap min-w-[110px]">Revisión</th>
                       <th className="py-3 px-3 text-center font-semibold uppercase tracking-wider text-[10px] whitespace-nowrap min-w-[110px]">Aprobación</th>
+                      <th className="py-3 px-3 text-center font-semibold uppercase tracking-wider text-[10px] whitespace-nowrap min-w-[200px]">Matrices Asociadas</th>
                       <th className="py-3 px-3 text-center font-semibold uppercase tracking-wider text-[10px] whitespace-nowrap" colSpan={2}>
                         <div>Línea Base</div>
                         <div className="flex text-[8px] font-normal mt-0.5 opacity-70">
@@ -469,6 +478,25 @@ const DeliverableMatrix: React.FC = () => {
                           </td>
                           <td className="py-3 px-3 text-center text-zinc-600 dark:text-zinc-400">{entry.reviewInstanceName || '—'}</td>
                           <td className="py-3 px-3 text-center text-zinc-600 dark:text-zinc-400">{entry.approvalInstanceName || '—'}</td>
+                          <td className="py-3 px-3 align-top">
+                            <div className="space-y-1.5">
+                              {getRowMatrixItems(entry).map((mi) => (
+                                <button
+                                  key={mi.id}
+                                  onClick={() => navigate(`/matrix/${mi.projectId}`)}
+                                  className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg bg-emerald-50/70 dark:bg-emerald-900/10 border border-emerald-200/50 dark:border-emerald-800/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/25 hover:border-emerald-300 dark:hover:border-emerald-700/50 transition-colors cursor-pointer group"
+                                  title={`Ir a matriz: ${mi.code} – ${mi.title}`}
+                                >
+                                  <span className="text-[11px] font-mono font-bold text-emerald-700 dark:text-emerald-400 whitespace-nowrap">{mi.code}</span>
+                                  <span className="text-[11px] text-zinc-700 dark:text-zinc-300 truncate max-w-[160px]">{mi.title}</span>
+                                  <ExternalLink className="w-3 h-3 text-emerald-500/60 group-hover:text-emerald-600 dark:group-hover:text-emerald-300 flex-shrink-0 ml-auto transition-colors" />
+                                </button>
+                              ))}
+                              {getRowMatrixItems(entry).length === 0 && (
+                                <span className="text-zinc-300 dark:text-zinc-600 text-[10px]">—</span>
+                              )}
+                            </div>
+                          </td>
                           <td className="py-3 px-3 text-center">
                             <BaselineThumb entryId={Number(entry.id)} path={entry.baselinePhotoBefore} kind="before" hasPhoto={entry.hasPhotoBefore} onPreview={setLightboxUrl} />
                           </td>

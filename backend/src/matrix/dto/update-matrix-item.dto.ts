@@ -56,4 +56,8 @@ export class UpdateMatrixItemDto {
   @IsBoolean()
   @IsOptional()
   isDeliverable?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  deliverableEntryId?: number | null;
 }

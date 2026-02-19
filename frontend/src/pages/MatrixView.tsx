@@ -8,12 +8,12 @@ import {
   PlusCircle, History, Eye,
   Grid3X3, GanttChart, Columns3, BarChart3, Zap, Package,
 } from 'lucide-react';
-import { matrixAPI, projectsAPI } from '../services/api';
+import { matrixAPI, projectsAPI, deliverablesAPI } from '../services/api';
 import { useProject } from '../context/ProjectContext';
 import { useAuth } from '../context/AuthContext';
 import { notify } from '../store/notificationStore';
 import { Button, Modal, Spinner } from '../components/ui';
-import type { MatrixItem, MatrixDependency, ProjectBaseline, Project } from '../types';
+import type { MatrixItem, MatrixDependency, ProjectBaseline, Project, DeliverableEntry } from '../types';
 
 /* Lazy-loaded embedded views */
 const GanttView = lazy(() => import('./GanttView'));
@@ -176,8 +176,9 @@ const MatrixView: React.FC = () => {
   const [criticalOnly, setCriticalOnly] = useState(false);
 
   // Form data (shared create/edit)
-  const emptyForm = { code: '', title: '', description: '', weight: 0, plannedStart: '', plannedEnd: '', isMilestone: false, isCriticalPath: false, isDeliverable: false, parentId: null as number | null, status: 'not_started', codeMode: 'auto' as 'auto' | 'manual' };
+  const emptyForm = { code: '', title: '', description: '', weight: 0, plannedStart: '', plannedEnd: '', isMilestone: false, isCriticalPath: false, isDeliverable: false, deliverableEntryId: null as number | null, parentId: null as number | null, status: 'not_started', codeMode: 'auto' as 'auto' | 'manual' };
   const [formData, setFormData] = useState({ ...emptyForm });
+  const [deliverableEntriesForProject, setDeliverableEntriesForProject] = useState<DeliverableEntry[]>([]);
 
   // Drawer state for criteria, dependencies
   const [newCriteria, setNewCriteria] = useState('');
@@ -218,6 +219,14 @@ const MatrixView: React.FC = () => {
 
   useEffect(() => { loadProjects(); }, [loadProjects]);
   useEffect(() => { loadTree(); loadDependencies(); loadBaselines(); }, [loadTree, loadDependencies, loadBaselines]);
+
+  useEffect(() => {
+    if (showCreateModal && selectedProjectId) {
+      deliverablesAPI.getByProject(selectedProjectId).then((r) => setDeliverableEntriesForProject(r.data || [])).catch(() => setDeliverableEntriesForProject([]));
+    } else {
+      setDeliverableEntriesForProject([]);
+    }
+  }, [showCreateModal, selectedProjectId]);
 
   /* ═══ Helpers ═══ */
   const flatItems = useCallback((): MatrixItem[] => {
@@ -297,6 +306,7 @@ const MatrixView: React.FC = () => {
       plannedStart: item.plannedStart ? String(item.plannedStart).slice(0, 10) : '',
       plannedEnd: item.plannedEnd ? String(item.plannedEnd).slice(0, 10) : '',
       isMilestone: !!item.isMilestone, isCriticalPath: !!item.isCriticalPath, isDeliverable: !!item.isDeliverable,
+      deliverableEntryId: item.deliverableEntryId ?? null,
       parentId: item.parentId ? Number(item.parentId) : null, status: item.status,
       codeMode: 'manual', // Al editar, permitir modificación manual del código
     });
@@ -317,6 +327,7 @@ const MatrixView: React.FC = () => {
         isMilestone: !!formData.isMilestone,
         isCriticalPath: !!formData.isCriticalPath,
         isDeliverable: !!formData.isDeliverable,
+        deliverableEntryId: formData.isDeliverable ? (formData.deliverableEntryId ?? null) : null,
       };
       if (editingItem) {
         await matrixAPI.updateItem(Number(editingItem.id), {
@@ -836,10 +847,24 @@ const MatrixView: React.FC = () => {
                 <AlertTriangle className="w-3.5 h-3.5 text-red-500" /> Ruta Crítica
               </label>
               <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 cursor-pointer select-none">
-                <input type="checkbox" checked={formData.isDeliverable} onChange={(e) => setFormData({ ...formData, isDeliverable: e.target.checked })} className="rounded border-zinc-300 text-emerald-500 focus:ring-emerald-500" />
+                <input type="checkbox" checked={formData.isDeliverable} onChange={(e) => setFormData({ ...formData, isDeliverable: e.target.checked, deliverableEntryId: e.target.checked ? formData.deliverableEntryId : null })} className="rounded border-zinc-300 text-emerald-500 focus:ring-emerald-500" />
                 <Package className="w-3.5 h-3.5 text-emerald-500" /> Entregable
               </label>
             </div>
+            {formData.isDeliverable && (
+              <div>
+                <label className={LABEL_CLS}>Proyecto entregable (relación)</label>
+                <select value={formData.deliverableEntryId ?? ''} onChange={(e) => setFormData({ ...formData, deliverableEntryId: e.target.value ? +e.target.value : null })} className={INPUT_CLS}>
+                  <option value="">Seleccionar proyecto entregable...</option>
+                  {deliverableEntriesForProject.map((e) => (
+                    <option key={e.id} value={e.id}>{e.name}</option>
+                  ))}
+                </select>
+                {deliverableEntriesForProject.length === 0 && (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">Crea primero un entregable en la página Proyectos Entregables para poder asociarlo.</p>
+                )}
+              </div>
+            )}
             <div className="flex justify-end gap-2 pt-3 border-t border-light-border dark:border-dark-border">
               <Button variant="secondary" onClick={() => { setShowCreateModal(false); setEditingItem(null); }}>Cancelar</Button>
               <Button onClick={handleSave} disabled={!formData.code || !formData.title} leftIcon={<Save className="w-4 h-4" />}>

@@ -91,6 +91,9 @@ export class MatrixItem {
   @Column({ name: 'is_deliverable', default: false })
   isDeliverable: boolean;
 
+  @Column({ name: 'deliverable_entry_id', type: 'bigint', nullable: true })
+  deliverableEntryId: number | null;
+
   @Column({ name: 'sort_order', type: 'int', default: 0 })
   sortOrder: number;
 

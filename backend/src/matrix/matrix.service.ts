@@ -19,12 +19,14 @@ import { UpdateAcceptanceCriteriaDto } from './dto/update-acceptance-criteria.dt
 import { CreateDependencyDto } from './dto/create-dependency.dto';
 import { UpdateDependencyDto } from './dto/update-dependency.dto';
 import { CreateBaselineDto } from './dto/create-baseline.dto';
+import { DeliverablesService } from '../deliverables/deliverables.service';
 
 @Injectable()
 export class MatrixService {
   constructor(
     @InjectRepository(MatrixItem)
     private matrixItemsRepository: Repository<MatrixItem>,
+    private deliverablesService: DeliverablesService,
     @InjectRepository(MatrixAcceptanceCriteria)
     private criteriaRepository: Repository<MatrixAcceptanceCriteria>,
     @InjectRepository(MatrixDependency)
@@ -51,10 +53,20 @@ export class MatrixService {
     // Validate date consistency
     this.validateDates(dto.plannedStart, dto.plannedEnd);
 
+    if (dto.deliverableEntryId != null) {
+      const entry = await this.deliverablesService.findOne(dto.deliverableEntryId);
+      if (Number(entry.projectId) !== Number(dto.projectId)) {
+        throw new BadRequestException(
+          'El proyecto entregable debe pertenecer al mismo proyecto',
+        );
+      }
+    }
+
     const item = this.matrixItemsRepository.create({
       ...dto,
       plannedStart: dto.plannedStart ? new Date(dto.plannedStart) : null,
       plannedEnd: dto.plannedEnd ? new Date(dto.plannedEnd) : null,
+      deliverableEntryId: dto.deliverableEntryId ?? null,
     });
     return this.matrixItemsRepository.save(item);
   }
@@ -142,6 +154,17 @@ export class MatrixService {
     if (dto.parentId !== undefined) item.parentId = dto.parentId;
     if (dto.status !== undefined) item.status = dto.status;
     if (dto.isDeliverable !== undefined) item.isDeliverable = dto.isDeliverable;
+    if (dto.deliverableEntryId !== undefined) {
+      if (dto.deliverableEntryId != null) {
+        const entry = await this.deliverablesService.findOne(dto.deliverableEntryId);
+        if (Number(entry.projectId) !== Number(item.projectId)) {
+          throw new BadRequestException(
+            'El proyecto entregable debe pertenecer al mismo proyecto',
+          );
+        }
+      }
+      item.deliverableEntryId = dto.deliverableEntryId;
+    }
 
     await this.matrixItemsRepository.save(item);
 

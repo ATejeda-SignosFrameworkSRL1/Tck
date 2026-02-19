@@ -8,9 +8,11 @@ import { MatrixDependency } from './entities/matrix-dependency.entity';
 import { ProjectBaseline } from './entities/project-baseline.entity';
 import { BaselineSnapshot } from './entities/baseline-snapshot.entity';
 import { Ticket } from '../tickets/ticket.entity';
+import { DeliverablesModule } from '../deliverables/deliverables.module';
 
 @Module({
   imports: [
+    DeliverablesModule,
     TypeOrmModule.forFeature([
       MatrixItem,
       MatrixAcceptanceCriteria,

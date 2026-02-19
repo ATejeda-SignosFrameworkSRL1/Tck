@@ -30,6 +30,7 @@ export interface MatrixItem {
   isMilestone: boolean;
   isCriticalPath: boolean;
   isDeliverable: boolean;
+  deliverableEntryId?: number | null;
   sortOrder: number;
   status: 'not_started' | 'in_progress' | 'delayed' | 'completed';
   children?: MatrixItem[];

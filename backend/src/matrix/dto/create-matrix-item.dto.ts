@@ -55,4 +55,8 @@ export class CreateMatrixItemDto {
   @IsBoolean()
   @IsOptional()
   isDeliverable?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  deliverableEntryId?: number | null;
 }
