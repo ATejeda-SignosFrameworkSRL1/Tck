@@ -62,7 +62,7 @@ import {
   Table,
   Tabs,
   Spinner,
-  Modal,
+  ConfirmDialog,
 } from '../components/ui';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -1213,49 +1213,31 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ embeddedProjectId }) => {
         </>
       )}
 
-      {/* Modal: Confirmar eliminación de tag */}
-      <Modal
+      <ConfirmDialog
         isOpen={!!tagToDelete}
-        onClose={() => { if (!isDeletingTag) setTagToDelete(null); }}
+        onClose={() => setTagToDelete(null)}
         title="Eliminar tag"
-        size="sm"
-        showCloseButton
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        message={
+          <>
             ¿Estás seguro de que deseas eliminar el tag{' '}
             <span
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold text-white"
               style={{ backgroundColor: tagToDelete?.color }}
             >
               {tagToDelete?.name}
-            </span>
-            {' '}del sistema?
-          </p>
-          <p className="text-xs text-zinc-500">
-            Esta acción es irreversible. El tag será removido de todos los tickets que lo tengan asignado.
-          </p>
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setTagToDelete(null)}
-              disabled={isDeletingTag}
-            >
-              Cancelar
-            </Button>
-            <Button
-              size="sm"
-              onClick={confirmDeleteTag}
-              disabled={isDeletingTag}
-              className="bg-red-600 hover:bg-red-700 text-white"
-              leftIcon={<Trash2 className="w-3.5 h-3.5" />}
-            >
-              {isDeletingTag ? 'Eliminando...' : 'Eliminar tag'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+            </span>{' '}
+            del sistema?
+          </>
+        }
+        helperText="Esta acción es irreversible. El tag será removido de todos los tickets que lo tengan asignado."
+        confirmText="Eliminar tag"
+        cancelText="Cancelar"
+        variant="danger"
+        isLoading={isDeletingTag}
+        loadingText="Eliminando..."
+        confirmIcon={<Trash2 className="w-3.5 h-3.5" />}
+        onConfirm={confirmDeleteTag}
+      />
 
       {/* Ticket Detail Drawer */}
       {(ticketDetailMode === 'drawer' || ticketDetailMode === 'modal') && (

@@ -7,13 +7,13 @@ import {
   Param,
   Body,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { TagsService } from './tags.service';
 import { CreateTagDto } from './dto/create-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
 import { UserRole } from '../users/user.entity';
 
 @Controller('tags')
@@ -32,8 +32,8 @@ export class TagsController {
   }
 
   @Post()
-  create(@Body() dto: CreateTagDto) {
-    return this.tagsService.create(dto);
+  create(@Body() dto: CreateTagDto, @Request() req) {
+    return this.tagsService.create(dto, req.user.userId);
   }
 
   @Patch(':id')
@@ -41,9 +41,8 @@ export class TagsController {
     return this.tagsService.update(+id, dto);
   }
 
-  @Roles(UserRole.ADMIN)
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.tagsService.remove(+id);
+  remove(@Param('id') id: string, @Request() req) {
+    return this.tagsService.remove(+id, req.user.userId, req.user.role as UserRole);
   }
 }

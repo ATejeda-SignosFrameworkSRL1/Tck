@@ -3,6 +3,7 @@ import { useProject } from '../context/ProjectContext';
 import { deliverablesAPI, matrixAPI } from '../services/api';
 import type { DeliverableEntry, DeliverablesSummary, MatrixItem } from '../types';
 import { Printer, FileCheck, ChevronDown, FolderKanban, Loader2 } from 'lucide-react';
+import { ClientProjectFilters } from '../components/layout/ClientProjectFilters';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
@@ -12,8 +13,13 @@ const formatDate = (d: string | null) => {
 };
 
 const ActaAceptacion: React.FC = () => {
-  const { projects, selectedProject } = useProject();
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(selectedProject?.id || null);
+  const { projects, selectedProject, selectedProjectId: globalProjectId, setSelectedProjectId: setGlobalProjectId } = useProject();
+  const [selectedProjectId, setSelectedProjectIdLocal] = useState<number | null>(globalProjectId ?? (selectedProject?.id || null));
+
+  const setSelectedProjectId = (id: number | null) => {
+    setSelectedProjectIdLocal(id);
+    setGlobalProjectId(id);
+  };
   const [entries, setEntries] = useState<DeliverableEntry[]>([]);
   const [allMatrixItems, setAllMatrixItems] = useState<MatrixItem[]>([]);
   const [summary, setSummary] = useState<DeliverablesSummary | null>(null);
@@ -23,7 +29,7 @@ const ActaAceptacion: React.FC = () => {
 
   useEffect(() => {
     if (selectedProject?.id && !selectedProjectId) setSelectedProjectId(selectedProject.id);
-  }, [selectedProject, selectedProjectId]);
+  }, [selectedProject, selectedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleProjectChange = (id: number | null) => {
     setSelectedProjectId(id);
@@ -32,6 +38,13 @@ const ActaAceptacion: React.FC = () => {
     setSummary(null);
     setSelectedEntryId(null);
   };
+
+  // Sincronizar proyecto del contexto al cambiar desde ClientProjectFilters
+  useEffect(() => {
+    if (globalProjectId != null && globalProjectId !== selectedProjectId) {
+      handleProjectChange(globalProjectId);
+    }
+  }, [globalProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = useCallback(async () => {
     if (!selectedProjectId) return;
@@ -99,20 +112,9 @@ const ActaAceptacion: React.FC = () => {
 
             {/* Right: controls */}
             <div className="flex items-center gap-2.5 flex-shrink-0">
-              {/* Project */}
-              <div className="relative">
-                <select
-                  value={selectedProjectId ?? ''}
-                  onChange={(e) => handleProjectChange(e.target.value ? +e.target.value : null)}
-                  className="appearance-none h-9 pl-3 pr-8 text-[13px] rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-600 focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500 transition-colors cursor-pointer min-w-[180px]"
-                >
-                  <option value="">Proyecto...</option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-              </div>
+              <ClientProjectFilters
+                selectClassName="appearance-none h-9 pl-3 pr-8 text-[13px] rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-600 focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500 transition-colors cursor-pointer min-w-[160px]"
+              />
 
               {/* Entry */}
               <div className="relative">

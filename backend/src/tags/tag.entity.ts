@@ -4,7 +4,10 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { User } from '../users/user.entity';
 
 @Entity('tags', { schema: 'tick' })
 export class Tag {
@@ -19,6 +22,13 @@ export class Tag {
 
   @Column({ type: 'varchar', length: 50, nullable: true, default: null })
   icon: string | null;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'created_by_user_id' })
+  createdBy: User | null;
+
+  @Column({ name: 'created_by_user_id', type: 'bigint', nullable: true })
+  createdByUserId: number | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

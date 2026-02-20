@@ -2,14 +2,15 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Package, Plus, Trash2, Edit3, FileSpreadsheet, FileText,
-  RefreshCw, Layers, Calendar, Upload, Eye, ChevronDown, Image as ImageIcon, X, ExternalLink,
+  RefreshCw, Layers, Calendar, Upload, Eye, Image as ImageIcon, X, ExternalLink,
 } from 'lucide-react';
-import { deliverablesAPI, projectsAPI, matrixAPI } from '../services/api';
+import { deliverablesAPI, matrixAPI } from '../services/api';
 import { useProject } from '../context/ProjectContext';
 import { useAuth } from '../context/AuthContext';
+import { ClientProjectFilters } from '../components/layout/ClientProjectFilters';
 import { notify } from '../store/notificationStore';
-import { Button, Spinner } from '../components/ui';
-import type { Project, DeliverableEntry, DeliverablesSummary, MatrixItem } from '../types';
+import { Button, Spinner, ConfirmDialog } from '../components/ui';
+import type { DeliverableEntry, DeliverablesSummary, MatrixItem } from '../types';
 
 /* ═══════════════════ STATUS CONFIG ═══════════════════ */
 const STATUS_OPTIONS: { value: string; label: string; color: string; bg: string }[] = [
@@ -139,26 +140,28 @@ const StatPill: React.FC<{ label: string; value: string | number; color: string 
 /* ═══════════════════ MAIN COMPONENT ═══════════════════ */
 const DeliverableMatrix: React.FC = () => {
   const navigate = useNavigate();
-  const { selectedProject } = useProject();
+  const { selectedProject, selectedProjectId: globalProjectId, setSelectedProjectId: setGlobalProjectId } = useProject();
   const { user } = useAuth();
   const canManage = user?.role === 'admin' || user?.role === 'supervisor';
 
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(selectedProject?.id || null);
+  const [selectedProjectId, setSelectedProjectIdLocal] = useState<number | null>(globalProjectId ?? (selectedProject?.id || null));
+
+  const setSelectedProjectId = (id: number | null) => {
+    setSelectedProjectIdLocal(id);
+    setGlobalProjectId(id);
+  };
   const [entries, setEntries] = useState<DeliverableEntry[]>([]);
   const [summary, setSummary] = useState<DeliverablesSummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [deliverableMatrixItems, setDeliverableMatrixItems] = useState<MatrixItem[]>([]);
+  const [deliverableToDeleteId, setDeliverableToDeleteId] = useState<number | null>(null);
+  const [isDeletingDeliverable, setIsDeletingDeliverable] = useState(false);
 
   const [clientLogo, setClientLogo] = useState<string | null>(null);
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const clientLogoRef = useRef<HTMLInputElement>(null);
   const companyLogoRef = useRef<HTMLInputElement>(null);
-
-  const loadProjects = useCallback(async () => {
-    try { setProjects((await projectsAPI.getAll()).data || []); } catch { /* */ }
-  }, []);
 
   const loadData = useCallback(async () => {
     if (!selectedProjectId) return;
@@ -183,19 +186,39 @@ const DeliverableMatrix: React.FC = () => {
     return deliverableMatrixItems.filter((mi) => mi.deliverableEntryId != null && Number(mi.deliverableEntryId) === Number(entry.id));
   };
 
-  useEffect(() => { loadProjects(); }, [loadProjects]);
   useEffect(() => {
     if (selectedProject?.id && !selectedProjectId) setSelectedProjectId(selectedProject.id);
-  }, [selectedProject, selectedProjectId]);
+  }, [selectedProject, selectedProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { loadData(); }, [loadData]);
 
+  useEffect(() => {
+    if (globalProjectId != null && globalProjectId !== selectedProjectId) {
+      setSelectedProjectIdLocal(globalProjectId);
+    }
+  }, [globalProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   /* ═══ CRUD ═══ */
-  const handleDelete = async (id: number) => {
-    if (!confirm('¿Eliminar este entregable?')) return;
+  const handleDelete = (id: number) => {
+    setDeliverableToDeleteId(id);
+  };
+
+  const confirmDeleteDeliverable = async () => {
+    if (!deliverableToDeleteId) return;
     try {
-      await deliverablesAPI.remove(id);
+      setIsDeletingDeliverable(true);
+      await deliverablesAPI.remove(deliverableToDeleteId);
+      setDeliverableToDeleteId(null);
       await loadData();
-    } catch (err: any) { notify({ type: 'error', title: 'Error al eliminar', body: err?.response?.data?.message }); }
+      notify({ type: 'success', title: 'Entregable eliminado' });
+    } catch (err: any) {
+      notify({
+        type: 'error',
+        title: 'Error al eliminar',
+        body: err?.response?.data?.message,
+      });
+    } finally {
+      setIsDeletingDeliverable(false);
+    }
   };
 
   /* ═══ LOGOS ═══ */
@@ -293,17 +316,9 @@ const DeliverableMatrix: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="relative">
-            <select
-              value={selectedProjectId || ''}
-              onChange={(e) => setSelectedProjectId(e.target.value ? +e.target.value : null)}
-              className="appearance-none text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg pl-3 pr-8 py-2 bg-white dark:bg-dark-surface text-zinc-900 dark:text-white min-w-[220px] focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all shadow-sm"
-            >
-              <option value="">Seleccionar proyecto...</option>
-              {projects.filter((p) => p.isActive).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-            <ChevronDown className="w-4 h-4 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
+          <ClientProjectFilters
+            selectClassName="text-sm border border-zinc-200 dark:border-zinc-700 rounded-lg pl-3 pr-8 py-2 bg-white dark:bg-dark-surface text-zinc-900 dark:text-white min-w-[180px] focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all shadow-sm"
+          />
           <Button onClick={loadData} variant="secondary" leftIcon={<RefreshCw className="w-4 h-4" />}>Actualizar</Button>
           {entries.length > 0 && (
             <>
@@ -525,6 +540,21 @@ const DeliverableMatrix: React.FC = () => {
           </div>
         </>
       )}
+
+      <ConfirmDialog
+        isOpen={deliverableToDeleteId != null}
+        onClose={() => setDeliverableToDeleteId(null)}
+        title="Eliminar entregable"
+        message="¿Estás seguro de que deseas eliminar este entregable?"
+        helperText="Esta acción es irreversible."
+        confirmText="Eliminar entregable"
+        cancelText="Cancelar"
+        variant="danger"
+        isLoading={isDeletingDeliverable}
+        loadingText="Eliminando..."
+        confirmIcon={<Trash2 className="w-3.5 h-3.5" />}
+        onConfirm={confirmDeleteDeliverable}
+      />
     </div>
   );
 };

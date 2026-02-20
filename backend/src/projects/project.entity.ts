@@ -5,9 +5,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Department } from '../departments/department.entity';
 import { Ticket } from '../tickets/ticket.entity';
+import { Client } from '../clients/client.entity';
 
 @Entity('projects', { schema: 'core' })
 export class Project {
@@ -37,6 +40,13 @@ export class Project {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  @ManyToOne(() => Client, (client) => client.projects, { nullable: true })
+  @JoinColumn({ name: 'client_id' })
+  client: Client | null;
+
+  @Column({ name: 'client_id', type: 'bigint', nullable: true })
+  clientId: number | null;
 
   @OneToMany(() => Department, (department) => department.project)
   departments: Department[];

@@ -7,6 +7,7 @@ import {
 import { ganttAPI, projectsAPI } from '../services/api';
 import { useProject } from '../context/ProjectContext';
 import { Spinner } from '../components/ui';
+import { ClientProjectFilters } from '../components/layout/ClientProjectFilters';
 import type { GanttData, GanttTask, Project } from '../types';
 
 /* ═══════════════════ LAYOUT ═══════════════════ */
@@ -36,13 +37,18 @@ interface GanttViewProps {
 
 const GanttView: React.FC<GanttViewProps> = ({ embeddedProjectId }) => {
   const { projectId: urlProjectId } = useParams();
-  const { selectedProject } = useProject();
+  const { selectedProject, selectedProjectId: globalProjectId, setSelectedProjectId: setGlobalProjectId } = useProject();
   const isEmbedded = embeddedProjectId !== undefined;
-  const projectId = isEmbedded ? embeddedProjectId : (urlProjectId ? +urlProjectId : selectedProject?.id);
+  const projectId = isEmbedded ? embeddedProjectId : (urlProjectId ? +urlProjectId : globalProjectId ?? selectedProject?.id);
 
   const [ganttData, setGanttData] = useState<GanttData | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(projectId || null);
+  const [selectedProjectId, setSelectedProjectIdLocal] = useState<number | null>(projectId || null);
+
+  const setSelectedProjectId = (id: number | null) => {
+    setSelectedProjectIdLocal(id);
+    if (!isEmbedded) setGlobalProjectId(id);
+  };
   const [isLoading, setIsLoading] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
@@ -62,6 +68,12 @@ const GanttView: React.FC<GanttViewProps> = ({ embeddedProjectId }) => {
   }, [selectedProjectId]);
   useEffect(() => { loadProjects(); }, [loadProjects]);
   useEffect(() => { loadGantt(); }, [loadGantt]);
+
+  useEffect(() => {
+    if (!isEmbedded && globalProjectId != null && globalProjectId !== selectedProjectId) {
+      setSelectedProjectIdLocal(globalProjectId);
+    }
+  }, [globalProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggle = (id: number) => setExpandedIds((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
@@ -153,10 +165,9 @@ const GanttView: React.FC<GanttViewProps> = ({ embeddedProjectId }) => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <select value={selectedProjectId ?? ''} onChange={(e) => setSelectedProjectId(e.target.value ? +e.target.value : null)} className="text-sm border border-light-border dark:border-dark-border rounded-lg px-3 py-2 bg-white dark:bg-dark-card text-zinc-900 dark:text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 min-w-[200px]">
-                <option value="">Seleccionar proyecto...</option>
-                {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
+              <ClientProjectFilters
+                selectClassName="text-sm border border-light-border dark:border-dark-border rounded-lg px-3 py-2 bg-white dark:bg-dark-card text-zinc-900 dark:text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 min-w-[180px]"
+              />
               {vis.length > 0 && (
                 <button onClick={allExp ? collapseAll : expandAll} className="flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 px-3 py-2 rounded-lg border border-light-border dark:border-dark-border bg-white dark:bg-dark-card">
                   <ChevronsUpDown className="w-3.5 h-3.5" /> {allExp ? 'Colapsar' : 'Expandir'}

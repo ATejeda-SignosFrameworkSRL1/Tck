@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Power, MoreVertical, FolderKanban, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { projectsAPI } from '../../services/api';
+import { projectsAPI, clientsAPI } from '../../services/api';
 import { useProject } from '../../context/ProjectContext';
 import { notify } from '../../store/notificationStore';
 import { PageHeader, Button, Table, Badge, Modal, Input, ConfirmDialog, Dropdown, EmptyState } from '../../components/ui';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import type { Client } from '../../types';
 
 interface Project {
   id: number;
@@ -14,6 +15,8 @@ interface Project {
   description?: string;
   clientDeadline?: string;
   isActive: boolean;
+  clientId?: number | null;
+  client?: Client | null;
   createdAt: string;
   departments?: any[];
   tickets?: any[];
@@ -22,22 +25,33 @@ interface Project {
 const ProjectsPage: React.FC = () => {
   const { selectedProjectId, setSelectedProjectId } = useProject();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [allClients, setAllClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Project | null>(null);
 
-  // Form state
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     clientDeadline: '',
     createDefaultDepartments: false,
+    clientId: '' as string,
   });
 
   useEffect(() => {
     loadProjects();
+    loadClients();
   }, []);
+
+  const loadClients = async () => {
+    try {
+      const response = await clientsAPI.getAll();
+      setAllClients(response.data);
+    } catch (e) {
+      console.error('Error loading clients:', e);
+    }
+  };
 
   const loadProjects = async () => {
     try {
@@ -59,6 +73,7 @@ const ProjectsPage: React.FC = () => {
         description: project.description || '',
         clientDeadline: project.clientDeadline?.split('T')[0] || '',
         createDefaultDepartments: false,
+        clientId: project.clientId != null ? String(project.clientId) : '',
       });
     } else {
       setEditingProject(null);
@@ -67,6 +82,7 @@ const ProjectsPage: React.FC = () => {
         description: '',
         clientDeadline: '',
         createDefaultDepartments: true,
+        clientId: '',
       });
     }
     setIsModalOpen(true);
@@ -79,11 +95,13 @@ const ProjectsPage: React.FC = () => {
 
   const handleSubmit = async () => {
     try {
+      const clientIdVal = formData.clientId ? Number(formData.clientId) : null;
       if (editingProject) {
         await projectsAPI.update(editingProject.id, {
           name: formData.name,
           description: formData.description || undefined,
           clientDeadline: formData.clientDeadline || undefined,
+          clientId: clientIdVal,
         });
         toast.success('Proyecto actualizado correctamente');
       } else {
@@ -92,6 +110,7 @@ const ProjectsPage: React.FC = () => {
           description: formData.description || undefined,
           clientDeadline: formData.clientDeadline || undefined,
           createDefaultDepartments: formData.createDefaultDepartments,
+          clientId: clientIdVal,
         });
         toast.success('Proyecto creado correctamente');
       }
@@ -183,6 +202,15 @@ const ProjectsPage: React.FC = () => {
           </div>
         );
       },
+    },
+    {
+      key: 'client',
+      header: 'Cliente',
+      render: (project: Project) => (
+        <span className="text-zinc-600 dark:text-zinc-400">
+          {project.client?.name || '—'}
+        </span>
+      ),
     },
     {
       key: 'departments',
@@ -312,6 +340,24 @@ const ProjectsPage: React.FC = () => {
               rows={3}
               className="w-full px-3 py-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+              Cliente
+            </label>
+            <select
+              value={formData.clientId}
+              onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
+              className="w-full px-3 py-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            >
+              <option value="">Sin cliente asignado</option>
+              {allClients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}{c.identification ? ` (${c.identification})` : ''}
+                </option>
+              ))}
+            </select>
           </div>
 
           <Input

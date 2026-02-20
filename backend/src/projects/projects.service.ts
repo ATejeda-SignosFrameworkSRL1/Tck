@@ -9,6 +9,7 @@ import { Project } from './project.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { Department } from '../departments/department.entity';
+import { Client } from '../clients/client.entity';
 
 @Injectable()
 export class ProjectsService {
@@ -37,7 +38,8 @@ export class ProjectsService {
     const query = this.projectsRepository
       .createQueryBuilder('project')
       .leftJoinAndSelect('project.departments', 'department')
-      .leftJoinAndSelect('project.tickets', 'ticket');
+      .leftJoinAndSelect('project.tickets', 'ticket')
+      .leftJoinAndSelect('project.client', 'client');
 
     if (!includeInactive) {
       query.where('project.isActive = :isActive', { isActive: true });
@@ -49,7 +51,7 @@ export class ProjectsService {
   async findOne(id: number): Promise<Project> {
     const project = await this.projectsRepository.findOne({
       where: { id },
-      relations: ['departments', 'departments.userDepartments', 'tickets'],
+      relations: ['departments', 'departments.userDepartments', 'tickets', 'client'],
     });
 
     if (!project) {

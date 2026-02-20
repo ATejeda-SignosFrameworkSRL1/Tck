@@ -73,6 +73,12 @@ const navItems: NavItem[] = [
     adminOnly: true,
     children: [
       {
+        id: 'clients',
+        label: 'Clientes',
+        icon: <Building2 className="w-4 h-4" />,
+        path: '/maintenance/clients',
+      },
+      {
         id: 'projects',
         label: 'Proyectos',
         icon: <FolderKanban className="w-4 h-4" />,
@@ -81,7 +87,7 @@ const navItems: NavItem[] = [
       {
         id: 'departments',
         label: 'Departamentos',
-        icon: <Building2 className="w-4 h-4" />,
+        icon: <Wrench className="w-4 h-4" />,
         path: '/maintenance/departments',
       },
       {

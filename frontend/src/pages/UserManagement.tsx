@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usersAPI, departmentsAPI, projectsAPI } from '../services/api';
+import { ConfirmDialog } from '../components/ui';
 
 interface Project {
   id: number;
@@ -35,6 +36,8 @@ const UserManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
   const [selectedDeptId, setSelectedDeptId] = useState<number>(0);
+  const [userToRemoveDeptId, setUserToRemoveDeptId] = useState<number | null>(null);
+  const [isRemovingDept, setIsRemovingDept] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -87,12 +90,20 @@ const UserManagement: React.FC = () => {
   };
 
   const handleRemoveDepartment = async (userId: number) => {
-    if (!window.confirm('¿Remover usuario de su departamento actual?')) return;
+    setUserToRemoveDeptId(userId);
+  };
+
+  const confirmRemoveDepartment = async () => {
+    if (userToRemoveDeptId == null) return;
     try {
-      await usersAPI.assignDepartments(userId, []);
-      loadData();
+      setIsRemovingDept(true);
+      await usersAPI.assignDepartments(userToRemoveDeptId, []);
+      setUserToRemoveDeptId(null);
+      await loadData();
     } catch (error: any) {
       alert(error.response?.data?.message || 'Error al remover departamento');
+    } finally {
+      setIsRemovingDept(false);
     }
   };
 
@@ -148,6 +159,20 @@ const UserManagement: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={userToRemoveDeptId != null}
+        onClose={() => setUserToRemoveDeptId(null)}
+        title="Remover de departamento"
+        message="¿Remover usuario de su departamento actual?"
+        helperText="Esta acción es irreversible."
+        confirmText="Remover"
+        cancelText="Cancelar"
+        variant="danger"
+        isLoading={isRemovingDept}
+        loadingText="Eliminando..."
+        onConfirm={confirmRemoveDepartment}
+      />
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

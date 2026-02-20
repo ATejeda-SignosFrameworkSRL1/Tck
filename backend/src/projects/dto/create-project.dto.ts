@@ -4,7 +4,9 @@ import {
   IsOptional,
   IsDateString,
   IsBoolean,
+  IsNumber,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class CreateProjectDto {
   @IsString()
@@ -26,4 +28,9 @@ export class CreateProjectDto {
   @IsBoolean()
   @IsOptional()
   createDefaultDepartments?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  @Transform(({ value }) => (value === '' || value == null ? undefined : Number(value)))
+  clientId?: number;
 }

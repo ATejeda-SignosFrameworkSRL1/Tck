@@ -37,6 +37,7 @@ const ProjectsPage = React.lazy(() => import('./pages/maintenance/ProjectsPage')
 const DepartmentsPage = React.lazy(() => import('./pages/maintenance/DepartmentsPage'));
 const UsersPage = React.lazy(() => import('./pages/maintenance/UsersPage'));
 const RolesPage = React.lazy(() => import('./pages/maintenance/RolesPage'));
+const ClientsPage = React.lazy(() => import('./pages/maintenance/ClientsPage'));
 
 // Settings
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
@@ -95,6 +96,7 @@ function App() {
                   <Route path="/maintenance/departments" element={<DepartmentsPage />} />
                   <Route path="/maintenance/users" element={<UsersPage />} />
                   <Route path="/maintenance/roles" element={<RolesPage />} />
+                  <Route path="/maintenance/clients" element={<ClientsPage />} />
 
                   {/* Settings */}
                   <Route path="/settings" element={<SettingsPage />} />

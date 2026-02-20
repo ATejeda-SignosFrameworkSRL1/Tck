@@ -15,6 +15,7 @@ import { MatrixModule } from './matrix/matrix.module';
 import { GanttModule } from './gantt/gantt.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { DeliverablesModule } from './deliverables/deliverables.module';
+import { ClientsModule } from './clients/clients.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { DeliverablesModule } from './deliverables/deliverables.module';
     GanttModule,
     MetricsModule,
     DeliverablesModule,
+    ClientsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

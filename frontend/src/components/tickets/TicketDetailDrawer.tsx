@@ -36,6 +36,7 @@ import {
   Modal,
   Spinner,
   AttachmentCard,
+  ConfirmDialog,
 } from '../ui';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -149,6 +150,7 @@ const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editingCommentText, setEditingCommentText] = useState('');
   const [deletingCommentId, setDeletingCommentId] = useState<number | null>(null);
+  const [commentToDeleteId, setCommentToDeleteId] = useState<number | null>(null);
 
   // Time tracking
   const [timeForm, setTimeForm] = useState({ hours: '', description: '' });
@@ -159,6 +161,8 @@ const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   const [isAddingChecklistItem, setIsAddingChecklistItem] = useState(false);
   const [togglingItemId, setTogglingItemId] = useState<number | null>(null);
   const [downloadingAttachmentId, setDownloadingAttachmentId] = useState<number | null>(null);
+  const [attachmentToDeleteId, setAttachmentToDeleteId] = useState<number | null>(null);
+  const [isDeletingAttachment, setIsDeletingAttachment] = useState(false);
   const [newAttachmentFiles, setNewAttachmentFiles] = useState<File[]>([]);
   const [isUploadingAttachments, setIsUploadingAttachments] = useState(false);
   const [imagePreview, setImagePreview] = useState<{ url: string; name: string } | null>(null);
@@ -355,10 +359,14 @@ const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
 
   const handleDeleteComment = async (commentId: number) => {
     if (!ticket) return;
-    if (!window.confirm('¿Eliminar este comentario?')) return;
+    setCommentToDeleteId(commentId);
+  };
+
+  const confirmDeleteComment = async () => {
+    if (!ticket || commentToDeleteId == null) return;
     try {
-      setDeletingCommentId(commentId);
-      await commentsAPI.delete(ticket.id, commentId);
+      setDeletingCommentId(commentToDeleteId);
+      await commentsAPI.delete(ticket.id, commentToDeleteId);
       const userName = user?.name || 'Usuario';
       notify({
         type: 'comment',
@@ -372,6 +380,7 @@ const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
       console.error('Error deleting comment:', error);
     } finally {
       setDeletingCommentId(null);
+      setCommentToDeleteId(null);
     }
   };
 
@@ -475,12 +484,20 @@ const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
 
   const handleDeleteAttachment = async (attachmentId: number) => {
     if (!ticket) return;
-    if (!window.confirm('¿Eliminar este adjunto?')) return;
+    setAttachmentToDeleteId(attachmentId);
+  };
+
+  const confirmDeleteAttachment = async () => {
+    if (!ticket || attachmentToDeleteId == null) return;
     try {
-      await ticketsAPI.deleteAttachment(ticket.id, attachmentId);
+      setIsDeletingAttachment(true);
+      await ticketsAPI.deleteAttachment(ticket.id, attachmentToDeleteId);
       loadTicket(ticket.id);
     } catch (error) {
       console.error('Error deleting attachment:', error);
+    } finally {
+      setIsDeletingAttachment(false);
+      setAttachmentToDeleteId(null);
     }
   };
 
@@ -1300,27 +1317,58 @@ const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
         </form>
       </Modal>
 
-      {/* Delete Ticket Modal */}
-      <Modal
+      <ConfirmDialog
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         title="Eliminar ticket"
-        size="sm"
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            ¿Estás seguro de que deseas eliminar el ticket <strong className="text-zinc-900 dark:text-white">#{ticket?.id} – {ticket?.title}</strong>? Esta acción no se puede deshacer.
-          </p>
-          <div className="flex justify-end gap-3">
-            <Button type="button" variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={isDeletingTicket}>
-              Cancelar
-            </Button>
-            <Button variant="danger" onClick={handleDeleteTicket} isLoading={isDeletingTicket} leftIcon={<Trash2 className="w-3.5 h-3.5" />}>
-              Eliminar ticket
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        message={
+          <>
+            ¿Estás seguro de que deseas eliminar el ticket{' '}
+            <strong className="text-zinc-900 dark:text-white">
+              #{ticket?.id} – {ticket?.title}
+            </strong>
+            ?
+          </>
+        }
+        helperText="Esta acción es irreversible."
+        confirmText="Eliminar ticket"
+        cancelText="Cancelar"
+        variant="danger"
+        isLoading={isDeletingTicket}
+        loadingText="Eliminando..."
+        confirmIcon={<Trash2 className="w-3.5 h-3.5" />}
+        onConfirm={handleDeleteTicket}
+      />
+
+      <ConfirmDialog
+        isOpen={commentToDeleteId != null}
+        onClose={() => setCommentToDeleteId(null)}
+        title="Eliminar comentario"
+        message="¿Eliminar este comentario?"
+        helperText="Esta acción es irreversible."
+        confirmText="Eliminar comentario"
+        cancelText="Cancelar"
+        variant="danger"
+        isLoading={deletingCommentId != null}
+        loadingText="Eliminando..."
+        confirmIcon={<Trash2 className="w-3.5 h-3.5" />}
+        onConfirm={confirmDeleteComment}
+      />
+
+      <ConfirmDialog
+        isOpen={attachmentToDeleteId != null}
+        onClose={() => setAttachmentToDeleteId(null)}
+        title="Eliminar adjunto"
+        message="¿Eliminar este adjunto?"
+        helperText="Esta acción es irreversible."
+        confirmText="Eliminar adjunto"
+        cancelText="Cancelar"
+        variant="danger"
+        isLoading={isDeletingAttachment}
+        loadingText="Eliminando..."
+        confirmIcon={<Trash2 className="w-3.5 h-3.5" />}
+        onConfirm={confirmDeleteAttachment}
+      />
 
       {/* Modal Ver imagen */}
       <Modal

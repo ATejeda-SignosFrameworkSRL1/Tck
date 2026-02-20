@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -9,6 +10,7 @@ import { Tag } from './tag.entity';
 import { TicketTag } from './ticket-tag.entity';
 import { CreateTagDto } from './dto/create-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
+import { UserRole } from '../users/user.entity';
 
 @Injectable()
 export class TagsService {
@@ -29,7 +31,7 @@ export class TagsService {
     return tag;
   }
 
-  async create(dto: CreateTagDto): Promise<Tag> {
+  async create(dto: CreateTagDto, userId: number): Promise<Tag> {
     const exists = await this.tagsRepository.findOne({ where: { name: dto.name } });
     if (exists) throw new ConflictException('Ya existe un tag con ese nombre');
 
@@ -37,6 +39,7 @@ export class TagsService {
       name: dto.name,
       color: dto.color || '#6366F1',
       icon: dto.icon || null,
+      createdByUserId: userId,
     });
     return this.tagsRepository.save(tag);
   }
@@ -53,9 +56,20 @@ export class TagsService {
     return this.tagsRepository.save(tag);
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: number, userId: number, userRole: UserRole): Promise<void> {
     const tag = await this.findOne(id);
-    await this.tagsRepository.remove(tag);
+
+    if (userRole === UserRole.ADMIN) {
+      await this.tagsRepository.remove(tag);
+      return;
+    }
+
+    if (tag.createdByUserId != null && Number(tag.createdByUserId) === Number(userId)) {
+      await this.tagsRepository.remove(tag);
+      return;
+    }
+
+    throw new ForbiddenException('Solo el creador del tag o un administrador puede eliminarlo.');
   }
 
   // ====== Ticket-Tag association ======

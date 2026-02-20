@@ -21,6 +21,7 @@ import {
 import { metricsAPI, projectsAPI } from '../../services/api';
 import { useProject } from '../../context/ProjectContext';
 import { Button, Spinner } from '../../components/ui';
+import { ClientProjectFilters } from '../../components/layout/ClientProjectFilters';
 import type {
   HealthSemaphore,
   ProgressMetrics,
@@ -81,11 +82,16 @@ interface SipeDashboardProps {
 
 const SipeDashboard: React.FC<SipeDashboardProps> = ({ embeddedProjectId }) => {
   const navigate = useNavigate();
-  const { selectedProject } = useProject();
+  const { selectedProject, selectedProjectId: globalProjectId, setSelectedProjectId: setGlobalProjectId } = useProject();
   const isEmbedded = embeddedProjectId !== undefined;
 
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(isEmbedded ? (embeddedProjectId ?? null) : (selectedProject?.id || null));
+  const [selectedProjectId, setSelectedProjectIdLocal] = useState<number | null>(isEmbedded ? (embeddedProjectId ?? null) : (globalProjectId ?? (selectedProject?.id || null)));
+
+  const setSelectedProjectId = (id: number | null) => {
+    setSelectedProjectIdLocal(id);
+    if (!isEmbedded) setGlobalProjectId(id);
+  };
   const [isLoading, setIsLoading] = useState(false);
 
   const [health, setHealth] = useState<HealthSemaphore | null>(null);
@@ -129,6 +135,12 @@ const SipeDashboard: React.FC<SipeDashboardProps> = ({ embeddedProjectId }) => {
   }, [selectedProjectId]);
 
   useEffect(() => { loadProjects(); }, [loadProjects]);
+
+  useEffect(() => {
+    if (!isEmbedded && globalProjectId != null && globalProjectId !== selectedProjectId) {
+      setSelectedProjectIdLocal(globalProjectId);
+    }
+  }, [globalProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { loadMetrics(); }, [loadMetrics]);
 
   const sem = health ? SEMAPHORE[health.status] : null;
@@ -165,14 +177,7 @@ const SipeDashboard: React.FC<SipeDashboardProps> = ({ embeddedProjectId }) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <select
-              value={selectedProjectId ?? ''}
-              onChange={(e) => setSelectedProjectId(e.target.value ? +e.target.value : null)}
-              className="text-sm border border-light-border dark:border-dark-border rounded-lg px-3 py-2 bg-white dark:bg-dark-card text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
-            >
-              <option value="">Seleccionar proyecto...</option>
-              {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            <ClientProjectFilters />
             <Button onClick={loadMetrics} variant="secondary" leftIcon={<RefreshCw className="w-4 h-4" />}>
             Actualizar
           </Button>

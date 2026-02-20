@@ -1,9 +1,20 @@
+export interface Client {
+  id: number;
+  name: string;
+  businessName: string;
+  identification: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Project {
   id: number;
   name: string;
   description?: string;
   clientDeadline?: string;
   isActive: boolean;
+  clientId?: number | null;
+  client?: Client | null;
   createdAt: string;
   updatedAt: string;
   departments?: Department[];

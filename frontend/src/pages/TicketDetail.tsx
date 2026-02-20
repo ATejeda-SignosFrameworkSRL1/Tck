@@ -4,7 +4,7 @@ import { ArrowLeft, Edit2, Save, X, Clock, User, Calendar, FolderKanban, Buildin
 import { ticketsAPI, commentsAPI, trackingAPI, departmentsAPI, tagsAPI, usersAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { notify } from '../store/notificationStore';
-import { PageHeader, Card, CardHeader, CardTitle, Button, Badge, StatusBadge, PriorityBadge, Avatar, Select, Input, PageLoader, Tabs, TabPanel, AttachmentCard, Modal } from '../components/ui';
+import { PageHeader, Card, CardHeader, CardTitle, Button, Badge, StatusBadge, PriorityBadge, Avatar, Select, Input, PageLoader, Tabs, TabPanel, AttachmentCard, Modal, ConfirmDialog } from '../components/ui';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { TicketChecklistItem, TicketAttachment } from '../types';
@@ -131,6 +131,9 @@ const TicketDetail: React.FC = () => {
   // Delete ticket modal
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeletingTicket, setIsDeletingTicket] = useState(false);
+  const [commentToDeleteId, setCommentToDeleteId] = useState<number | null>(null);
+  const [attachmentToDeleteId, setAttachmentToDeleteId] = useState<number | null>(null);
+  const [isDeletingAttachment, setIsDeletingAttachment] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -331,10 +334,14 @@ const TicketDetail: React.FC = () => {
 
   const handleDeleteComment = async (commentId: number) => {
     if (!ticket) return;
-    if (!window.confirm('¿Eliminar este comentario?')) return;
+    setCommentToDeleteId(commentId);
+  };
+
+  const confirmDeleteComment = async () => {
+    if (!ticket || commentToDeleteId == null) return;
     try {
-      setDeletingCommentId(commentId);
-      await commentsAPI.delete(ticket.id, commentId);
+      setDeletingCommentId(commentToDeleteId);
+      await commentsAPI.delete(ticket.id, commentToDeleteId);
       const userName = user?.name || 'Usuario';
       notify({
         type: 'comment',
@@ -348,6 +355,7 @@ const TicketDetail: React.FC = () => {
       console.error('Error deleting comment:', error);
     } finally {
       setDeletingCommentId(null);
+      setCommentToDeleteId(null);
     }
   };
 
@@ -455,12 +463,20 @@ const TicketDetail: React.FC = () => {
 
   const handleDeleteAttachment = async (attachmentId: number) => {
     if (!ticket) return;
-    if (!window.confirm('¿Eliminar este adjunto?')) return;
+    setAttachmentToDeleteId(attachmentId);
+  };
+
+  const confirmDeleteAttachment = async () => {
+    if (!ticket || attachmentToDeleteId == null) return;
     try {
-      await ticketsAPI.deleteAttachment(ticket.id, attachmentId);
+      setIsDeletingAttachment(true);
+      await ticketsAPI.deleteAttachment(ticket.id, attachmentToDeleteId);
       loadTicket();
     } catch (error) {
       console.error('Error deleting attachment:', error);
+    } finally {
+      setIsDeletingAttachment(false);
+      setAttachmentToDeleteId(null);
     }
   };
 
@@ -709,29 +725,60 @@ const TicketDetail: React.FC = () => {
         </div>
       )}
 
-      {/* Delete Ticket Modal */}
-      {showDeleteModal && ticket && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md mx-4">
-            <CardHeader>
-              <CardTitle>Eliminar ticket</CardTitle>
-            </CardHeader>
-            <div className="p-4 space-y-4">
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                ¿Estás seguro de que deseas eliminar el ticket <strong className="text-zinc-900 dark:text-white">#{ticket.id} – {ticket.title}</strong>? Esta acción no se puede deshacer.
-              </p>
-              <div className="flex justify-end gap-3">
-                <Button type="button" variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={isDeletingTicket}>
-                  Cancelar
-                </Button>
-                <Button variant="danger" onClick={handleDeleteTicket} isLoading={isDeletingTicket} leftIcon={<Trash2 className="w-4 h-4" />}>
-                  Eliminar ticket
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </div>
+      {ticket && (
+        <ConfirmDialog
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          title="Eliminar ticket"
+          message={
+            <>
+              ¿Estás seguro de que deseas eliminar el ticket{' '}
+              <strong className="text-zinc-900 dark:text-white">
+                #{ticket.id} – {ticket.title}
+              </strong>
+              ?
+            </>
+          }
+          helperText="Esta acción es irreversible."
+          confirmText="Eliminar ticket"
+          cancelText="Cancelar"
+          variant="danger"
+          isLoading={isDeletingTicket}
+          loadingText="Eliminando..."
+          confirmIcon={<Trash2 className="w-3.5 h-3.5" />}
+          onConfirm={handleDeleteTicket}
+        />
       )}
+
+      <ConfirmDialog
+        isOpen={commentToDeleteId != null}
+        onClose={() => setCommentToDeleteId(null)}
+        title="Eliminar comentario"
+        message="¿Eliminar este comentario?"
+        helperText="Esta acción es irreversible."
+        confirmText="Eliminar comentario"
+        cancelText="Cancelar"
+        variant="danger"
+        isLoading={deletingCommentId != null}
+        loadingText="Eliminando..."
+        confirmIcon={<Trash2 className="w-3.5 h-3.5" />}
+        onConfirm={confirmDeleteComment}
+      />
+
+      <ConfirmDialog
+        isOpen={attachmentToDeleteId != null}
+        onClose={() => setAttachmentToDeleteId(null)}
+        title="Eliminar adjunto"
+        message="¿Eliminar este adjunto?"
+        helperText="Esta acción es irreversible."
+        confirmText="Eliminar adjunto"
+        cancelText="Cancelar"
+        variant="danger"
+        isLoading={isDeletingAttachment}
+        loadingText="Eliminando..."
+        confirmIcon={<Trash2 className="w-3.5 h-3.5" />}
+        onConfirm={confirmDeleteAttachment}
+      />
 
       {/* Move Modal */}
       {showMoveModal && (

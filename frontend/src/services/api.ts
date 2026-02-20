@@ -93,6 +93,23 @@ export const authAPI = {
     api.delete(`/auth/invitations/${id}`),
 };
 
+// Clients endpoints
+export const clientsAPI = {
+  getAll: () => api.get('/clients'),
+  getOne: (id: number) => api.get(`/clients/${id}`),
+  create: (data: {
+    name: string;
+    businessName?: string;
+    identification?: string;
+  }) => api.post('/clients', data),
+  update: (id: number, data: Partial<{
+    name: string;
+    businessName?: string;
+    identification?: string;
+  }>) => api.patch(`/clients/${id}`, data),
+  delete: (id: number) => api.delete(`/clients/${id}`),
+};
+
 // Projects endpoints
 export const projectsAPI = {
   getAll: (includeInactive = false) =>
@@ -104,12 +121,14 @@ export const projectsAPI = {
     clientDeadline?: string;
     isActive?: boolean;
     createDefaultDepartments?: boolean;
+    clientId?: number | null;
   }) => api.post('/projects', data),
   update: (id: number, data: Partial<{
     name: string;
     description?: string;
     clientDeadline?: string;
     isActive?: boolean;
+    clientId?: number | null;
   }>) => api.patch(`/projects/${id}`, data),
   delete: (id: number) => api.delete(`/projects/${id}`),
   activate: (id: number) => api.patch(`/projects/${id}/activate`, {}),

@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback } from 'react';
 import { clsx } from 'clsx';
 import { X } from 'lucide-react';
+import { Button } from './Button';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -126,11 +127,16 @@ export interface ConfirmDialogProps {
   onClose: () => void;
   onConfirm: () => void;
   title: string;
-  message: string;
+  message: React.ReactNode;
+  helperText?: React.ReactNode;
   confirmText?: string;
   cancelText?: string;
   variant?: 'danger' | 'warning' | 'info';
   isLoading?: boolean;
+  loadingText?: string;
+  confirmIcon?: React.ReactNode;
+  /** Evita cerrar por overlay/escape/x mientras está cargando */
+  blockCloseWhileLoading?: boolean;
 }
 
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
@@ -139,38 +145,66 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onConfirm,
   title,
   message,
+  helperText,
   confirmText = 'Confirmar',
   cancelText = 'Cancelar',
   variant = 'danger',
   isLoading = false,
+  loadingText,
+  confirmIcon,
+  blockCloseWhileLoading = true,
 }) => {
-  const buttonVariants = {
-    danger: 'bg-accent-danger hover:bg-red-600',
-    warning: 'bg-accent-warning hover:bg-amber-600',
-    info: 'bg-accent-info hover:bg-blue-600',
+  const safeClose = () => {
+    if (blockCloseWhileLoading && isLoading) return;
+    onClose();
   };
 
+  const confirmButtonClassName =
+    variant === 'danger'
+      ? 'bg-red-600 hover:bg-red-700 text-white'
+      : variant === 'warning'
+        ? 'bg-amber-600 hover:bg-amber-700 text-white'
+        : 'bg-blue-600 hover:bg-blue-700 text-white';
+
+  const effectiveLoadingText =
+    loadingText ?? (variant === 'danger' ? 'Eliminando...' : 'Procesando...');
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
-      <p className="text-zinc-600 dark:text-zinc-400">{message}</p>
-      <div className="flex items-center justify-end gap-3 mt-6">
-        <button
-          onClick={onClose}
-          disabled={isLoading}
-          className="px-4 py-2 text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
-        >
-          {cancelText}
-        </button>
-        <button
-          onClick={onConfirm}
-          disabled={isLoading}
-          className={clsx(
-            'px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-50',
-            buttonVariants[variant]
-          )}
-        >
-          {isLoading ? 'Procesando...' : confirmText}
-        </button>
+    <Modal
+      isOpen={isOpen}
+      onClose={safeClose}
+      title={title}
+      size="sm"
+      showCloseButton
+      closeOnOverlay={!(blockCloseWhileLoading && isLoading)}
+      closeOnEscape={!(blockCloseWhileLoading && isLoading)}
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">{message}</p>
+        {helperText && (
+          <p className="text-xs text-zinc-500">
+            {helperText}
+          </p>
+        )}
+        <div className="flex items-center justify-end gap-2 pt-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={safeClose}
+            disabled={isLoading}
+          >
+            {cancelText}
+          </Button>
+          <Button
+            size="sm"
+            onClick={onConfirm}
+            disabled={isLoading}
+            className={confirmButtonClassName}
+            leftIcon={confirmIcon}
+          >
+            {isLoading ? effectiveLoadingText : confirmText}
+          </Button>
+        </div>
       </div>
     </Modal>
   );

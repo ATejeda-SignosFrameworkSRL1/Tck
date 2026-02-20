@@ -10,9 +10,10 @@ import {
 } from 'lucide-react';
 import { matrixAPI, projectsAPI, deliverablesAPI } from '../services/api';
 import { useProject } from '../context/ProjectContext';
+import { ClientProjectFilters } from '../components/layout/ClientProjectFilters';
 import { useAuth } from '../context/AuthContext';
 import { notify } from '../store/notificationStore';
-import { Button, Modal, Spinner } from '../components/ui';
+import { Button, Modal, Spinner, ConfirmDialog } from '../components/ui';
 import type { MatrixItem, MatrixDependency, ProjectBaseline, Project, DeliverableEntry } from '../types';
 
 /* Lazy-loaded embedded views */
@@ -144,9 +145,9 @@ const MatrixView: React.FC = () => {
   const navigate = useNavigate();
   const { projectId: urlProjectId } = useParams();
   const [searchParams] = useSearchParams();
-  const { selectedProject } = useProject();
+  const { selectedProject, selectedProjectId: globalProjectId, setSelectedProjectId: setGlobalProjectId } = useProject();
   const { user } = useAuth();
-  const projectId = urlProjectId ? +urlProjectId : selectedProject?.id;
+  const projectId = urlProjectId ? +urlProjectId : globalProjectId ?? selectedProject?.id;
 
   // Active tab — lee ?tab= de la URL para que "regresar" funcione correctamente
   const initialTab = (searchParams.get('tab') as ProjectTab) || 'matrix';
@@ -168,6 +169,8 @@ const MatrixView: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<MatrixItem | null>(null);
   const [showBaselineModal, setShowBaselineModal] = useState(false);
   const [showBaselinesPanel, setShowBaselinesPanel] = useState(false);
+  const [itemToDeleteId, setItemToDeleteId] = useState<number | null>(null);
+  const [isDeletingItem, setIsDeletingItem] = useState(false);
 
   // Search & filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -221,6 +224,19 @@ const MatrixView: React.FC = () => {
   useEffect(() => { loadProjects(); }, [loadProjects]);
   useEffect(() => { loadTree(); loadDependencies(); loadBaselines(); }, [loadTree, loadDependencies, loadBaselines]);
 
+  // Sync global project selection -> local
+  useEffect(() => {
+    if (globalProjectId != null && globalProjectId !== selectedProjectId) {
+      setSelectedProjectId(globalProjectId);
+    }
+  }, [globalProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync local -> global when user picks from local dropdown
+  const handleLocalProjectChange = (id: number | null) => {
+    setSelectedProjectId(id);
+    setGlobalProjectId(id);
+  };
+
   useEffect(() => {
     if (showCreateModal && selectedProjectId) {
       deliverablesAPI.getByProject(selectedProjectId).then((r) => setDeliverableEntriesForProject(r.data || [])).catch(() => setDeliverableEntriesForProject([]));
@@ -258,7 +274,7 @@ const MatrixView: React.FC = () => {
   const calculateAutoCode = useCallback((parentId: number | null): string => {
     if (parentId === null || parentId === undefined) {
       // Raíz: buscar el siguiente número (1, 2, 3...)
-      const rootItems = tree.filter((i) => i.parentId == null || i.parentId === '');
+      const rootItems = tree.filter((i) => i.parentId == null);
       const existingCodes = rootItems.map((i) => i.code).filter((c) => /^\d+$/.test(c)).map((c) => parseInt(c));
       const maxNum = existingCodes.length > 0 ? Math.max(...existingCodes) : 0;
       return String(maxNum + 1);
@@ -328,7 +344,7 @@ const MatrixView: React.FC = () => {
   };
 
   const validateChildDatesAgainstParent = (): string | null => {
-    if (formData.parentId == null || formData.parentId === '') return null;
+    if (formData.parentId == null) return null;
     const parent = flatItems().find((i) => idNum(i.id) === idNum(formData.parentId));
     if (!parent?.plannedStart && !parent?.plannedEnd) return null;
     const parentStart = parent.plannedStart ? new Date(parent.plannedStart).getTime() : null;
@@ -378,7 +394,7 @@ const MatrixView: React.FC = () => {
         await matrixAPI.createItem({
           ...payload,
           projectId: selectedProjectId,
-          parentId: formData.parentId != null && formData.parentId !== '' ? Number(formData.parentId) : undefined,
+          parentId: formData.parentId != null ? Number(formData.parentId) : undefined,
         });
       }
       const wasEditing = !!editingItem;
@@ -393,9 +409,28 @@ const MatrixView: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('¿Eliminar este ítem y todos sus sub-ítems? Los tickets vinculados se desenlazarán.')) return;
-    try { await matrixAPI.deleteItem(id); setSelectedItem(null); await loadTree(); } catch (err: any) { notify({ type: 'error', title: 'Error al eliminar', body: err?.response?.data?.message }); }
+  const handleDelete = (id: number) => {
+    setItemToDeleteId(id);
+  };
+
+  const confirmDeleteItem = async () => {
+    if (!itemToDeleteId) return;
+    try {
+      setIsDeletingItem(true);
+      await matrixAPI.deleteItem(itemToDeleteId);
+      setSelectedItem(null);
+      setItemToDeleteId(null);
+      await loadTree();
+      notify({ type: 'success', title: 'Ítem eliminado' });
+    } catch (err: any) {
+      notify({
+        type: 'error',
+        title: 'Error al eliminar',
+        body: err?.response?.data?.message,
+      });
+    } finally {
+      setIsDeletingItem(false);
+    }
   };
 
   const handleDuplicate = async (item: MatrixItem) => {
@@ -492,10 +527,7 @@ const MatrixView: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <select value={selectedProjectId ?? ''} onChange={(e) => setSelectedProjectId(e.target.value ? +e.target.value : null)} className="text-sm border border-light-border dark:border-dark-border rounded-lg px-3 py-2 bg-white dark:bg-dark-card text-zinc-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
-            <option value="">Seleccionar proyecto...</option>
-            {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          <ClientProjectFilters />
           {canManage && selectedProjectId && activeTab === 'matrix' && (
             <>
               <Button onClick={() => setShowBaselineModal(true)} variant="secondary" leftIcon={<BookMarked className="w-4 h-4" />}>Baseline</Button>
@@ -879,7 +911,7 @@ const MatrixView: React.FC = () => {
             <div><label className={LABEL_CLS}>Título *</label><input type="text" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="Nombre de la partida..." className={INPUT_CLS} /></div>
             <div><label className={LABEL_CLS}>Descripción</label><textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={2} className={INPUT_CLS} /></div>
             {(() => {
-              const parentForDates = formData.parentId != null && formData.parentId !== ''
+              const parentForDates = formData.parentId != null
                 ? flatItems().find((i) => idNum(i.id) === idNum(formData.parentId))
                 : null;
               const parentMinStart = parentForDates?.plannedStart
@@ -954,6 +986,21 @@ const MatrixView: React.FC = () => {
           </div>
         </Modal>
       )}
+
+      <ConfirmDialog
+        isOpen={itemToDeleteId != null}
+        onClose={() => setItemToDeleteId(null)}
+        title="Eliminar ítem"
+        message="¿Eliminar este ítem y todos sus sub-ítems? Los tickets vinculados se desenlazarán."
+        helperText="Esta acción es irreversible."
+        confirmText="Eliminar ítem"
+        cancelText="Cancelar"
+        variant="danger"
+        isLoading={isDeletingItem}
+        loadingText="Eliminando..."
+        confirmIcon={<Trash2 className="w-3.5 h-3.5" />}
+        onConfirm={confirmDeleteItem}
+      />
     </div>
   );
 };
