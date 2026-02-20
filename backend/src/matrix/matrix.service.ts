@@ -55,6 +55,11 @@ export class MatrixService {
     // Validate parent belongs to same project
     if (dto.parentId) {
       await this.validateParentProject(dto.projectId, dto.parentId);
+      await this.validateChildDatesWithinParent(
+        dto.parentId,
+        dto.plannedStart,
+        dto.plannedEnd,
+      );
     }
 
     // Validate date consistency
@@ -147,6 +152,11 @@ export class MatrixService {
     const startStr = dto.plannedStart ?? (item.plannedStart ? item.plannedStart.toISOString() : undefined);
     const endStr = dto.plannedEnd ?? (item.plannedEnd ? item.plannedEnd.toISOString() : undefined);
     this.validateDates(startStr, endStr);
+
+    const effectiveParentId = dto.parentId !== undefined ? dto.parentId : item.parentId;
+    if (effectiveParentId != null && Number(effectiveParentId) > 0) {
+      await this.validateChildDatesWithinParent(Number(effectiveParentId), startStr, endStr);
+    }
 
     // Only apply defined fields to avoid overwriting with undefined
     if (dto.code !== undefined) item.code = dto.code;
@@ -619,6 +629,50 @@ export class MatrixService {
       if (new Date(plannedEnd) < new Date(plannedStart)) {
         throw new BadRequestException(
           'La fecha de fin no puede ser anterior a la fecha de inicio',
+        );
+      }
+    }
+  }
+
+  private toDateOnly(d: Date | string): string {
+    return new Date(d).toISOString().slice(0, 10);
+  }
+
+  /**
+   * Las fechas del hijo deben estar dentro del rango del padre:
+   * - Inicio hijo >= Inicio padre
+   * - Fin hijo <= Fin padre
+   * Compara solo la porción YYYY-MM-DD para evitar problemas con timezones.
+   */
+  private async validateChildDatesWithinParent(
+    parentId: number,
+    childPlannedStart?: string,
+    childPlannedEnd?: string,
+  ): Promise<void> {
+    if (!childPlannedStart && !childPlannedEnd) return;
+
+    const parent = await this.matrixItemsRepository.findOne({
+      where: { id: Number(parentId) },
+    });
+    if (!parent) return;
+
+    const parentStartStr = parent.plannedStart ? this.toDateOnly(parent.plannedStart) : null;
+    const parentEndStr = parent.plannedEnd ? this.toDateOnly(parent.plannedEnd) : null;
+
+    if (childPlannedStart && parentStartStr) {
+      const childStartStr = this.toDateOnly(childPlannedStart);
+      if (childStartStr < parentStartStr) {
+        throw new BadRequestException(
+          `La fecha de inicio (${childStartStr}) no puede ser anterior a la del padre (${parentStartStr}).`,
+        );
+      }
+    }
+
+    if (childPlannedEnd && parentEndStr) {
+      const childEndStr = this.toDateOnly(childPlannedEnd);
+      if (childEndStr > parentEndStr) {
+        throw new BadRequestException(
+          `La fecha de fin (${childEndStr}) no puede ser posterior a la del padre (${parentEndStr}).`,
         );
       }
     }

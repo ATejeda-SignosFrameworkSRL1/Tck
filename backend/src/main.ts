@@ -48,14 +48,16 @@ async function bootstrap() {
   await app.listen(port, '0.0.0.0');
 
   const localIP = getLocalIP();
+  const frontendPort = 5173;
   console.log('');
-  console.log('='.repeat(55));
-  console.log(`  🚀 Backend corriendo en:`);
+  console.log('='.repeat(60));
+  console.log(`  🚀 Backend (API) escuchando en 0.0.0.0:${port}`);
   console.log(`     Local:   http://localhost:${port}`);
   console.log(`     Red:     http://${localIP}:${port}`);
-  console.log('='.repeat(55));
-  console.log(`  📋 URL para QA: http://${localIP}:${port}`);
-  console.log('='.repeat(55));
+  console.log('='.repeat(60));
+  console.log(`  📋 URL para QA (abrir en el navegador):`);
+  console.log(`     http://${localIP}:${frontendPort}`);
+  console.log('='.repeat(60));
   console.log('');
 }
 bootstrap();

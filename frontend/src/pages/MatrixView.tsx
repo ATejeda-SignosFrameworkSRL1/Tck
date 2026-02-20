@@ -245,6 +245,15 @@ const MatrixView: React.FC = () => {
   // Normalizar id (API puede devolver number o string por bigint)
   const idNum = (x: unknown): number | null => (x == null || x === '') ? null : Number(x);
 
+  // Sincronizar selectedItem con el árbol actualizado
+  useEffect(() => {
+    if (!selectedItem) return;
+    const fresh = flatItems().find((i) => idNum(i.id) === idNum(selectedItem.id));
+    if (fresh && JSON.stringify(fresh) !== JSON.stringify(selectedItem)) {
+      setSelectedItem(fresh);
+    }
+  }, [tree]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Calcular código WBS automático según padre
   const calculateAutoCode = useCallback((parentId: number | null): string => {
     if (parentId === null || parentId === undefined) {
@@ -318,8 +327,34 @@ const MatrixView: React.FC = () => {
     setShowCreateModal(true);
   };
 
+  const validateChildDatesAgainstParent = (): string | null => {
+    if (formData.parentId == null || formData.parentId === '') return null;
+    const parent = flatItems().find((i) => idNum(i.id) === idNum(formData.parentId));
+    if (!parent?.plannedStart && !parent?.plannedEnd) return null;
+    const parentStart = parent.plannedStart ? new Date(parent.plannedStart).getTime() : null;
+    const parentEnd = parent.plannedEnd ? new Date(parent.plannedEnd).getTime() : null;
+    if (formData.plannedStart && parentStart !== null) {
+      const childStart = new Date(formData.plannedStart).getTime();
+      if (childStart < parentStart) {
+        return 'La fecha de inicio no puede ser anterior a la fecha de inicio de la partida padre.';
+      }
+    }
+    if (formData.plannedEnd && parentEnd !== null) {
+      const childEnd = new Date(formData.plannedEnd).getTime();
+      if (childEnd > parentEnd) {
+        return 'La fecha de fin no puede ser posterior a la fecha de fin de la partida padre.';
+      }
+    }
+    return null;
+  };
+
   const handleSave = async () => {
     if (!selectedProjectId || !formData.code || !formData.title) return;
+    const dateError = validateChildDatesAgainstParent();
+    if (dateError) {
+      notify({ type: 'error', title: 'Fechas no válidas', body: dateError });
+      return;
+    }
     try {
       const payload = {
         code: formData.code,
@@ -346,11 +381,16 @@ const MatrixView: React.FC = () => {
           parentId: formData.parentId != null && formData.parentId !== '' ? Number(formData.parentId) : undefined,
         });
       }
+      const wasEditing = !!editingItem;
       setShowCreateModal(false);
       setEditingItem(null);
       setFormData({ ...emptyForm });
       await loadTree();
-    } catch (err: any) { notify({ type: 'error', title: 'Error al guardar', body: err?.response?.data?.message }); }
+      notify({ type: 'success', title: wasEditing ? 'Ítem actualizado' : 'Ítem creado' });
+    } catch (err: any) {
+      const msg = Array.isArray(err?.response?.data?.message) ? err.response.data.message.join(', ') : err?.response?.data?.message;
+      notify({ type: 'error', title: 'Error al guardar', body: msg || 'Ocurrió un error inesperado' });
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -838,11 +878,24 @@ const MatrixView: React.FC = () => {
             </div>
             <div><label className={LABEL_CLS}>Título *</label><input type="text" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="Nombre de la partida..." className={INPUT_CLS} /></div>
             <div><label className={LABEL_CLS}>Descripción</label><textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={2} className={INPUT_CLS} /></div>
-            <div className="grid grid-cols-3 gap-3">
-              <div><label className={LABEL_CLS}>Peso (%)</label><input type="number" value={formData.weight} onChange={(e) => setFormData({ ...formData, weight: +e.target.value })} min={0} max={100} className={INPUT_CLS} /></div>
-              <div><label className={LABEL_CLS}>Inicio Plan.</label><input type="date" value={formData.plannedStart} onChange={(e) => setFormData({ ...formData, plannedStart: e.target.value })} className={INPUT_CLS} /></div>
-              <div><label className={LABEL_CLS}>Fin Plan.</label><input type="date" value={formData.plannedEnd} onChange={(e) => setFormData({ ...formData, plannedEnd: e.target.value })} className={INPUT_CLS} /></div>
-            </div>
+            {(() => {
+              const parentForDates = formData.parentId != null && formData.parentId !== ''
+                ? flatItems().find((i) => idNum(i.id) === idNum(formData.parentId))
+                : null;
+              const parentMinStart = parentForDates?.plannedStart
+                ? String(parentForDates.plannedStart).slice(0, 10)
+                : undefined;
+              const parentMaxEnd = parentForDates?.plannedEnd
+                ? String(parentForDates.plannedEnd).slice(0, 10)
+                : undefined;
+              return (
+                <div className="grid grid-cols-3 gap-3">
+                  <div><label className={LABEL_CLS}>Peso (%)</label><input type="number" value={formData.weight} onChange={(e) => setFormData({ ...formData, weight: +e.target.value })} min={0} max={100} className={INPUT_CLS} /></div>
+                  <div><label className={LABEL_CLS}>Inicio Plan.</label><input type="date" value={formData.plannedStart} onChange={(e) => setFormData({ ...formData, plannedStart: e.target.value })} min={parentMinStart} max={parentMaxEnd} className={INPUT_CLS} title={parentMinStart ? `Debe ser >= ${parentMinStart} (fecha inicio padre)` : undefined} /></div>
+                  <div><label className={LABEL_CLS}>Fin Plan.</label><input type="date" value={formData.plannedEnd} onChange={(e) => setFormData({ ...formData, plannedEnd: e.target.value })} min={parentMinStart} max={parentMaxEnd} className={INPUT_CLS} title={parentMaxEnd ? `Debe ser <= ${parentMaxEnd} (fecha fin padre)` : undefined} /></div>
+                </div>
+              );
+            })()}
             {editingItem && (
               <div><label className={LABEL_CLS}>Estado</label>
                 <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className={INPUT_CLS}>
